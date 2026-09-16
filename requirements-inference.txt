@@ -1,0 +1,2 @@
+# Installed into .deps/inference; existing Isaac NumPy/websockets are reused.
+msgpack==1.1.1

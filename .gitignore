@@ -1,0 +1,9 @@
+/artifacts/
+/plans/
+__pycache__/
+*.pyc
+*.log
+/.venv/
+/.deps/
+
+.DS_Store

@@ -1,0 +1,9 @@
+{
+  "calibration_status": "fixture_only",
+  "resolution": [640, 480],
+  "cameras": {
+    "wrist": {"mount_link": "wrist_3_link", "eye_m": [1.39, 0.67, 1.88], "look_at_m": [1.44, 0.60, 1.2], "fx_px": 550},
+    "third_left": {"eye_m": [2.5, -0.6, 2.3], "look_at_m": [1.2, 0.6, 1.5], "fx_px": 550},
+    "third_right": {"eye_m": [2.5, 1.8, 2.3], "look_at_m": [1.2, 0.6, 1.5], "fx_px": 550}
+  }
+}
