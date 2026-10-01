@@ -541,3 +541,12 @@ The user requested world-axis directions and named tabletop corners for future
 layout instructions. See workcell-coordinates.md for A/B/C/D labels. Coordinates
 were checked against the saved tabletop's world-space USD bounding box; this
 reference document adds no stage geometry or behavior.
+
+
+## Table2 addition — 2026-10-02
+
+The existing workbench is named Table1. An identical static Table2 is added
+using the corrected B1-D2 distance and 20-degree line angle. See
+[the placement plan](table2-layout.md) and [coordinates](workcell-coordinates.md).
+Static checks, simulator rendering and user visual alignment pass. The user
+authorized committing the Table2 placement on 2026-10-02. Prior accepted robot/workbench/prop geometry remains unchanged.

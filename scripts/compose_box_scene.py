@@ -21,6 +21,7 @@ EDGE, DENSITY = 0.03, 1240.0
 BACK_GAP, BASE_GAP = 0.235, 0.9
 BASE_FROM_CORNER = LENGTH - BACK_GAP - 0.047 / 2 - BASE_GAP
 RIGHT_EDGE = LENGTH - BASE_FROM_CORNER
+TABLE2_GAP, TABLE2_YAW = 0.5461, 70.0
 
 
 def cube_asset(root: pathlib.Path) -> pathlib.Path:
@@ -42,9 +43,7 @@ def cube_asset(root: pathlib.Path) -> pathlib.Path:
     shape = UsdGeom.Cube.Define(stage, "/RedCube/Shape")
     shape.CreateSizeAttr(EDGE)
     shape.CreateDisplayColorAttr([Gf.Vec3f(0.75, 0.008, 0.008)])
-    UsdPhysics.CollisionAPI.Apply(shape.GetPrim()).CreateCollisionEnabledAttr(
-        True
-    )
+    UsdPhysics.CollisionAPI.Apply(shape.GetPrim()).CreateCollisionEnabledAttr(True)
     material = UsdShade.Material.Define(stage, "/RedCube/Material")
     shader = UsdShade.Shader.Define(stage, "/RedCube/Material/Surface")
     shader.CreateIdAttr("UsdPreviewSurface")
@@ -54,9 +53,7 @@ def cube_asset(root: pathlib.Path) -> pathlib.Path:
         Gf.Vec3f(0.75, 0.008, 0.008)
     )
     shader.CreateInput("roughness", Sdf.ValueTypeNames.Float).Set(0.6)
-    material.CreateSurfaceOutput().ConnectToSource(
-        shader.ConnectableAPI(), "surface"
-    )
+    material.CreateSurfaceOutput().ConnectToSource(shader.ConnectableAPI(), "surface")
     UsdShade.MaterialBindingAPI.Apply(shape.GetPrim()).Bind(material)
     physics = UsdPhysics.MaterialAPI.Apply(material.GetPrim())
     physics.CreateStaticFrictionAttr(0.5)
@@ -107,6 +104,36 @@ def place(
     return prim
 
 
+def place_table(stage, name: str, asset: pathlib.Path, xy: tuple, yaw: float):
+    """Reuse the static table asset with the workcell's common top height."""
+    table = place(stage, name, asset, (*xy, 0), yaw)
+    transform = UsdGeom.Xformable(table)
+    transform.MakeMatrixXform().Set(
+        Gf.Matrix4d().SetScale(Gf.Vec3d(1, 1, HEIGHT / NATIVE_HEIGHT))
+        * transform.GetLocalTransformation()
+    )
+    return table
+
+
+def second_table(stage, asset: pathlib.Path) -> dict:
+    """Anchor D2 on the +X extension of Table1 AB and retain 20-degree skew."""
+    rotation = Gf.Rotation(Gf.Vec3d(0, 0, 1), TABLE2_YAW)
+    anchor = Gf.Vec3d(RIGHT_EDGE + TABLE2_GAP, -WIDTH / 2, 0)
+    local_d = Gf.Vec3d(-LENGTH / 2, WIDTH / 2, 0)
+    center = anchor - rotation.TransformDir(local_d)
+    place_table(stage, "/World/Table2", asset, tuple(center)[:2], TABLE2_YAW)
+    return {
+        "prim_path": "/World/Table2",
+        "asset": "../../assets/furniture/versteel_table_3072/isaac/table_fixed.usda",
+        "center_floor_m": list(center),
+        "yaw_deg": TABLE2_YAW,
+        "b1_d2_distance_m": TABLE2_GAP,
+        "line_angle_deg": 20,
+        "placement_interpretation": "D2 on the +X extension of Table1 AB",
+        "corners_m": tabletop_corners(stage, "/World/Table2"),
+    }
+
+
 # The workcell builder keeps its component placements together.
 # pylint: disable-next=too-many-locals
 def build(root: pathlib.Path, collection_root: pathlib.Path) -> dict:
@@ -129,14 +156,8 @@ def build(root: pathlib.Path, collection_root: pathlib.Path) -> dict:
         "customLayerData", "cameraSettings:boundCamera", "/World/Camera"
     )
     table = root / "assets/furniture/versteel_table_3072/isaac/table_fixed.usda"
-    fixture = place(
-        stage, "/World/Table", table, (LENGTH / 2 - BASE_FROM_CORNER, 0, 0)
-    )
-    transform = UsdGeom.Xformable(fixture)
-    matrix = transform.GetLocalTransformation()
-    transform.MakeMatrixXform().Set(
-        Gf.Matrix4d().SetScale(Gf.Vec3d(1, 1, height / NATIVE_HEIGHT)) * matrix
-    )
+    place_table(stage, "/World/Table", table, (LENGTH / 2 - BASE_FROM_CORNER, 0), 0)
+    layout["table2"] = second_table(stage, table)
     box_x = BASE_GAP
     layout["scene_id"] = SCENE
     layout["description"] = (
@@ -157,9 +178,7 @@ def build(root: pathlib.Path, collection_root: pathlib.Path) -> dict:
     }
     layout["robot"]["base_position_m"] = [0, 0, height]
     layout["robot"]["base_yaw_rad"] = -math.pi
-    layout["robot"][
-        "yaw_policy"
-    ] = "Fixed -180 degrees; retain natural TCP offset"
+    layout["robot"]["yaw_policy"] = "Fixed -180 degrees; retain natural TCP offset"
     layout["robot"]["base_yaw_rad"], tcp = compose_scene.place_robot(
         stage, root, layout, output
     )
@@ -197,9 +216,7 @@ def build(root: pathlib.Path, collection_root: pathlib.Path) -> dict:
     environment(stage)
     layout["background"] = {"mode": "none", "lighting": "neutral"}
     stage.GetRootLayer().Save()
-    (output.parent / "layout.json").write_text(
-        json.dumps(layout, indent=2) + "\n"
-    )
+    (output.parent / "layout.json").write_text(json.dumps(layout, indent=2) + "\n")
     report = validate(output)
     (output.parent / "scene-report.json").write_text(
         json.dumps(report, indent=2) + "\n"
@@ -229,9 +246,7 @@ def environment(stage) -> None:
     camera.AddTransformOp().Set(
         Gf.Matrix4d()
         .SetLookAt(
-            Gf.Vec3d(
-                1.04 - BASE_FROM_CORNER, WIDTH / 2 + 3.2, 2.2 + height_delta
-            ),
+            Gf.Vec3d(1.04 - BASE_FROM_CORNER, WIDTH / 2 + 3.2, 2.2 + height_delta),
             Gf.Vec3d(1.04 - BASE_FROM_CORNER, 0, 1.25 + height_delta),
             Gf.Vec3d(0, 0, 1),
         )
@@ -249,9 +264,7 @@ def validate(path: pathlib.Path) -> dict:
         for layer in layers
         for ref in layer.GetExternalReferences()
     )
-    cache = UsdGeom.BBoxCache(
-        Usd.TimeCode.Default(), ["default", "render", "proxy"]
-    )
+    cache = UsdGeom.BBoxCache(Usd.TimeCode.Default(), ["default", "render", "proxy"])
     table = stage.GetPrimAtPath("/World/Table")
     assert not UsdPhysics.RigidBodyAPI(table).GetRigidBodyEnabledAttr().Get()
     top = cache.ComputeWorldBound(
@@ -267,17 +280,83 @@ def validate(path: pathlib.Path) -> dict:
     assert matrix.TransformDir(Gf.Vec3d(0, 1, 0))[0] > 0.999
     center = matrix.ExtractTranslation()
     assert abs(center[1]) < 1e-8
-    base = layout["robot"]["base_position_m"]
-    assert abs(math.dist(base[:2], list(center)[:2]) - BASE_GAP) < 1e-8
+    assert (
+        abs(
+            math.dist(layout["robot"]["base_position_m"][:2], list(center)[:2])
+            - BASE_GAP
+        )
+        < 1e-8
+    )
     counts = supported_components(stage, cache)
+    table2 = validate_table2(stage)
+    counts["Table2"] = table2["colliders"]
     return {
         "static_validation": "PASS",
         "colliders": counts,
         "back_gap_m": RIGHT_EDGE - back[0],
         "base_box_distance_m": BASE_GAP,
+        "table2": table2,
         "red_cube_mass_kg": DENSITY * EDGE**3,
         "render_validation": "NOT RUN",
         "settle_validation": "NOT RUN",
+    }
+
+
+def tabletop_corners(stage, path: str) -> dict:
+    """Measure nominal upper-surface A/B/C/D in the composed world frame."""
+    table = stage.GetPrimAtPath(path)
+    top = stage.GetPrimAtPath(path + "/Visuals/Tabletop")
+    cache = UsdGeom.BBoxCache(Usd.TimeCode.Default(), ["default", "render"])
+    bounds = cache.ComputeRelativeBound(top, table).ComputeAlignedRange()
+    low, high = bounds.GetMin(), bounds.GetMax()
+    transform = UsdGeom.XformCache().GetLocalToWorldTransform(table)
+    return {
+        name: list(transform.Transform(Gf.Vec3d(x, y, high[2])))
+        for name, x, y in (
+            ("A", low[0], low[1]),
+            ("B", high[0], low[1]),
+            ("C", high[0], high[1]),
+            ("D", low[0], high[1]),
+        )
+    }
+
+
+def validate_table2(stage) -> dict:
+    """Check actual asset support, corner distance, skew and separation."""
+    first = tabletop_corners(stage, "/World/Table")
+    second = tabletop_corners(stage, "/World/Table2")
+    distance = math.dist(first["B"], second["D"])
+    assert abs(distance - 0.5461) < 1e-6
+    assert abs(second["D"][1] - first["B"][1]) < 1e-6
+    ab = Gf.Vec3d(*first["B"]) - Gf.Vec3d(*first["A"])
+    ad = Gf.Vec3d(*second["D"]) - Gf.Vec3d(*second["A"])
+    cosine = Gf.Dot(ab, ad) / (ab.GetLength() * ad.GetLength())
+    angle = math.degrees(math.acos(max(-1, min(1, cosine))))
+    assert abs(angle - 160) < 1e-5
+    assert abs(math.dist(second["A"], second["B"]) - LENGTH) < 1e-6
+    assert abs(math.dist(second["A"], second["D"]) - WIDTH) < 1e-6
+    assert all(abs(point[2] - HEIGHT) < 1e-6 for point in second.values())
+    table = stage.GetPrimAtPath("/World/Table2")
+    assert not UsdPhysics.RigidBodyAPI(table).GetRigidBodyEnabledAttr().Get()
+    colliders = [p for p in Usd.PrimRange(table) if p.HasAPI(UsdPhysics.CollisionAPI)]
+    assert len(colliders) == 40
+    assert all(
+        UsdPhysics.CollisionAPI(p).GetCollisionEnabledAttr().Get() for p in colliders
+    )
+    cache = UsdGeom.BBoxCache(Usd.TimeCode.Default(), ["default", "render"])
+    bounds = cache.ComputeWorldBound(table).ComputeAlignedRange()
+    first_bounds = cache.ComputeWorldBound(
+        stage.GetPrimAtPath("/World/Table")
+    ).ComputeAlignedRange()
+    assert abs(bounds.GetMin()[2]) < 0.001
+    assert bounds.GetMin()[0] > first_bounds.GetMax()[0]
+    return {
+        "corners_m": second,
+        "b1_d2_distance_m": distance,
+        "oriented_angle_deg": angle,
+        "line_angle_deg": 180 - angle,
+        "colliders": len(colliders),
+        "tables_separated": True,
     }
 
 
@@ -307,10 +386,7 @@ def supported_components(stage, cache) -> dict:
             p.HasAPI(UsdPhysics.CollisionAPI) for p in Usd.PrimRange(prim)
         )
         assert counts[prim.GetName()] > 0
-    assert (
-        abs(UsdPhysics.MassAPI(cube).GetMassAttr().Get() - DENSITY * EDGE**3)
-        < 1e-8
-    )
+    assert abs(UsdPhysics.MassAPI(cube).GetMassAttr().Get() - DENSITY * EDGE**3) < 1e-8
     return counts
 
 

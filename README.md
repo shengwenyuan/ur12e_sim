@@ -142,7 +142,10 @@ The world origin is on the floor below the robot base. +X points toward the
 carton, +Y is left while looking along +X, and +Z is up. Tabletop height is 0.85 m.
 Named tabletop corners A/B/C/D and layout directions are recorded in
 [the coordinate reference](docs/workcell-coordinates.md).
-The active scene contains only the table, UR12e, Hand-E, carton and red cube,
+Table1 keeps the robot and props; Table2 reuses the same static mesh at +70
+degrees, with D2 546.1 mm along the +X extension of Table1 AB from B1. See
+[the Table2 placement plan](docs/table2-layout.md) for the interpretation and checks.
+The active scene contains the two tables, UR12e, Hand-E, carton and red cube,
 with a visible floor, neutral lighting and the saved observer camera.
 Photographic panorama/finite-room backgrounds have been removed from the scene
 and composer. The original panorama files remain in assets/backgrounds/ under

@@ -31,16 +31,10 @@ class BoxSceneTest(unittest.TestCase):
         report = compose_box_scene.validate(self.directory / "scene.usda")
         self.assertEqual(report["static_validation"], "PASS")
         self.assertEqual(self.layout["robot"]["base_position_m"], [0, 0, 0.85])
-        self.assertEqual(
-            self.layout["robot"]["home_deg"], [0, -90, -90, -90, 90, 0]
-        )
+        self.assertEqual(self.layout["robot"]["home_deg"], [0, -90, -90, -90, 90, 0])
         self.assertEqual(self.layout["robot"]["base_yaw_rad"], -math.pi)
-        self.assertAlmostEqual(
-            self.layout["props"]["cube_position_m"][0], 0.6097
-        )
-        self.assertAlmostEqual(
-            self.layout["props"]["cube_position_m"][1], 0.019
-        )
+        self.assertAlmostEqual(self.layout["props"]["cube_position_m"][0], 0.6097)
+        self.assertAlmostEqual(self.layout["props"]["cube_position_m"][1], 0.019)
         cache = UsdGeom.BBoxCache(Usd.TimeCode.Default(), ["default", "render"])
         bounds = cache.ComputeWorldBound(
             self.stage.GetPrimAtPath("/World/Table")
@@ -48,17 +42,13 @@ class BoxSceneTest(unittest.TestCase):
         self.assertLess(abs(bounds.GetMin()[2]), 0.001)
         self.assertAlmostEqual(bounds.GetMax()[2], 0.85, places=5)
         floor = self.stage.GetPrimAtPath("/World/Floor")
-        self.assertTrue(
-            UsdPhysics.CollisionAPI(floor).GetCollisionEnabledAttr().Get()
-        )
+        self.assertTrue(UsdPhysics.CollisionAPI(floor).GetCollisionEnabledAttr().Get())
 
     def test_robot_geometry_is_not_scaled_or_reposed(self):
         """Preserve link HOME FK when changing the mounting translation."""
         robot = self.layout["robot"]
         urdf = ROOT / "assets/robots/ur12e/ur12e.urdf"
-        joints = dict(
-            zip(robot["joint_names"], map(math.radians, robot["home_deg"]))
-        )
+        joints = dict(zip(robot["joint_names"], map(math.radians, robot["home_deg"])))
         expected = kinematics.forward(urdf, joints)
         cache = UsdGeom.XformCache()
         mount = Gf.Matrix4d().SetRotate(Gf.Rotation(Gf.Vec3d(0, 0, 1), -180))
@@ -90,6 +80,7 @@ class BoxSceneTest(unittest.TestCase):
         self.assertEqual(floor.ComputeVisibility(), "inherited")
         expected = {
             "Table",
+            "Table2",
             "UR12e",
             "HandE",
             "Props",
@@ -100,10 +91,7 @@ class BoxSceneTest(unittest.TestCase):
             "Camera",
         }
         self.assertEqual(
-            {
-                p.GetName()
-                for p in self.stage.GetPrimAtPath("/World").GetChildren()
-            },
+            {p.GetName() for p in self.stage.GetPrimAtPath("/World").GetChildren()},
             expected,
         )
         layers, assets, unresolved = UsdUtils.ComputeAllDependencies(
