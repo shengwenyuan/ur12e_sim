@@ -138,19 +138,19 @@ for the Versteel table at 0.85 m, HOME UR12e/Hand-E, open Dynamixel carton and
 [the workcell plan](docs/versteel-box-scene.md). The saved long-edge camera frames
 all task elements; restarting preserves the saved cube pose.
 
-The current world origin is on the floor below the robot base. The Flex Lab
-background is finite room geometry with photographic projection, configured in
-[room.json](scenes/versteel_box_pick_place/room.json). Capture is approximately
-(0.30, 0, 1.20) m, looking +X; the blinds are at Y=-0.50 m. Other room dimensions
-are explicit estimates. Edit room.json, then regenerate with
-`scripts/compose_box_scene.py --collection-root /path/to/ur12e_collection`.
-Use `/World/CaptureCamera` to inspect the original photographic viewpoint.
+The world origin is on the floor below the robot base. +X points toward the
+carton, +Y is left while looking along +X, and +Z is up. Tabletop height is 0.85 m.
+Named tabletop corners A/B/C/D and layout directions are recorded in
+[the coordinate reference](docs/workcell-coordinates.md).
+The active scene contains only the table, UR12e, Hand-E, carton and red cube,
+with a visible floor, neutral lighting and the saved observer camera.
+Photographic panorama/finite-room backgrounds have been removed from the scene
+and composer. The original panorama files remain in assets/backgrounds/ under
+Git LFS as unused source assets for reference.
 
-Run `scripts/preview_projected_room.py` to create the CPU background-only preview
-under ignored `artifacts/projected-room/`. Generated review images are omitted
-from the minimal Git/LFS delivery. Current Isaac
-multiview rendering and parallax checks passed; physical settling remains pending.
-See scene-report.json and the workcell plan for acceptance details.
+Rebuild using `scripts/compose_box_scene.py --collection-root /path/to/ur12e_collection`.
+Run `tests/test_box_scene.py` for retained geometry and clean-scene checks.
+See docs/versteel-box-scene.md for the current review and station evidence.
 
 This standalone project uses Git LFS for **all assets/ and scenes/ files**.
 Install Git LFS and run `git lfs pull` after cloning from a future Git/LFS host.

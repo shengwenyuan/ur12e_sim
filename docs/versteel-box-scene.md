@@ -2,9 +2,11 @@
 
 **Code style requirement: Economical code, exceptional readability, and excellent abstraction design.**
 
-Status: finite-distance lab background implemented on 2026-09-15; local checks
-and Isaac rendering/parallax passed. PhysX settling remains pending. Earlier
-results are historical.
+Status: photographic and finite-distance backgrounds removed on 2026-10-02.
+Local and station static checks pass; isolated Isaac 6.0.1 installation, startup
+and four-view RTX rendering pass. The user accepted the clean stage and
+authorized its commit on 2026-10-02.
+PhysX settling remains pending. Earlier results are historical.
 Existing HOME and contact-client boundaries remain valid.
 No physical robot or leader control is authorized or required.
 
@@ -159,7 +161,7 @@ pass. Evidence is embedded in the current scene report and preview, with station
 logs in artifacts/versteel-fixed-yaw/. No physical hardware was controlled.
 
 
-## Flex Lab panorama background — 2026-09-15 (initial orientation superseded)
+## Flex Lab panorama background — 2026-09-15 (retired)
 
 Scope follows the user's explicit request to use panorama_v1 as the current
 scene background, with the workstation ahead and left. From the saved +Y-side
@@ -248,7 +250,7 @@ They do not alter the saved camera or physical scene. Prior orientation evidence
 above is historical and superseded by this section.
 
 
-## Finite-distance lab background — 2026-09-15
+## Finite-distance lab background — 2026-09-15 (retired)
 
 **Code style requirement: Economical code, exceptional readability, and excellent abstraction design.**
 
@@ -388,3 +390,154 @@ gallery.html, report.json with camera poses and input scene hashes, parallax.jso
 the exact render/measurement scripts, and the runtime log. Evidence is ignored
 by Git; this summary remains sufficient to understand the acceptance result.
 The isolated station copy is /tmp/ur12e-multiview-20260915-siv4Dt.
+
+
+## M14: Clean workcell without photographic background — 2026-10-02
+
+**Code style requirement: Economical code, exceptional readability, and excellent abstraction design.**
+
+Aligned scope: the user explicitly requested removing both panorama-based and
+finite-distance background features, retaining the panorama files in Git LFS.
+Remove the LabBackground layer/reference, photographic capture camera, room
+configuration and projection/preview implementation. Preserve robot-base-centered
+world coordinates, tabletop height 0.85 m, all asset geometry, mounting yaw -180
+degrees, collection HOME, prop poses and the saved observer. Make the existing
+physical floor visible and keep neutral lighting. The only scene objects are
+the table, UR12e, Hand-E, open carton and red cube, plus floor/camera/lights/physics
+support. New lab meshes will be aligned separately.
+
+Implementation: remove the projection dependency from the composer; express the
+existing tabletop height directly as a workcell constant; replace projection
+tests with retained task-geometry tests and a background-free scene contract.
+Regenerate, verify unchanged retained stage fields/asset hashes, run static tests
+and render several views on ssh ur12e-collection. Synchronize the uncommitted
+review snapshot, then align the rendered stage with the user before committing.
+No physical robot or leader connections or motion commands are required.
+
+Runtime discovery: the SSH alias now resolves to li1013-MS-7E11 (li1013), with
+RTX 4070 Ti SUPER 16 GiB and the bundled ~/isaacsim/python.sh runtime. Its
+VERSION is 5.1.0-rc.19+release.26219.9c81211b.gl; NVIDIA driver is 595.91.07.
+This is a different installation from the previously accepted 6.0.1 station.
+The scene loads through its bundled USD 24.5 libraries without Kit initialization.
+
+Acceptance:
+
+- PASS: all eight scene/workcell static checks on both Mac (USD 26.8) and station
+  (bundled USD 24.5); Black and Pylint for the modified composer and new tests.
+- PASS: all four remaining USD entrypoints resolve. The station active stage has
+  no unresolved references or background dependency. Only Table, UR12e, HandE,
+  carton and cube remain as task objects, with floor/lights/camera/physics support.
+- PASS: every retained authored stage field is identical to the previous stage,
+  except the floor visibility changing from invisible to inherited. Geometry,
+  HOME FK, mounting yaw, prop poses and saved observer are unchanged. Retained
+  panorama and model payloads are unchanged and remain managed by Git LFS.
+- PASS: uncommitted review snapshot synchronized to ~/ur12e-sim on the station;
+  active USD SHA-256 is
+  ece45df51651f7e16d5e5438fdb5a9ea2469e6484273a363dc0437dc10b7ea18.
+- Historical BLOCKED (resolved with 6.0.1 below): station 5.1 RTX rendering.
+  Both headless and DISPLAY=:1 attempts crash
+  with exit 139 in librtx.scenedb.plugin.so during SimulationApp initialization,
+  before opening any project USD. The exact cause is not yet established. No
+  driver changes or runtime replacement have been made. No new images exist.
+- NOT RUN: PhysX settling or hardware actions; this change edits no colliders or
+  physical material properties. Visual user alignment and commit remain pending.
+
+Reproduce static checks with unittest discovery for test_box_scene.py and
+test_scene.py. Station Python requires its omni.usd.libs extension directory
+on PYTHONPATH and that extension's bin directory on LD_LIBRARY_PATH when using
+~/isaacsim/python.sh outside SimulationApp.
+
+Evidence: local artifacts/background-removal-20261002/local-checks.json;
+station artifacts/background-removal-20261002/stage-inventory.json and
+artifacts/background-removal-20261002[-display].log. Prior background acceptance
+is retired. Resolve the station runtime startup failure, render the clean stage,
+then align visually before committing.
+
+
+### Isolated station runtime recovery — 2026-10-02
+
+**Code style requirement: Economical code, exceptional readability, and excellent abstraction design.**
+
+The user authorized retrying the installed simulator and, if it remained broken,
+installing Isaac 6.0.1 in a separate home-directory virtual environment. A third
+attempt with a visible GUI and desktop Xauthority still crashed with exit 139
+before loading the stage. The 5.1 installation and NVIDIA driver remain intact.
+Installing 6.0.1 is the selected recovery path, not proof of the crash's root cause.
+
+Relevant station paths: ~/isaacsim is the installed standalone 5.1 runtime;
+~/.local/share/applications/IsaacSim.desktop points to that installation.
+~/Downloads/isaac-sim-standalone-5.1.0-linux-x86_64.zip is its installer.
+The similarly named 6.0.0 Downloads ZIPs are asset archives, several with aria2
+partial-download markers, not an installed executable runtime. No pre-existing
+6.0.1 virtual environment was found. ~/ur12e-sim contains this scene project.
+
+Selected environment: ~/venv/isaacsim-6.0.1, Python 3.12.14. Install using pip,
+with torch==2.11.0+cu128 from https://download.pytorch.org/whl/cu128 and
+isaacsim[all,extscache]==6.0.1.0 using PyPI plus https://pypi.nvidia.com.
+These exact versions exist on their official indexes. Official instructions:
+https://docs.isaacsim.omniverse.nvidia.com/6.0.1/installation/install_python.html
+The 6.0.1 requirements list Linux driver 595.58.03 as tested; this station uses
+595.91.07. Actual startup/rendering remains the acceptance condition, not driver
+version similarity. The workstation has approximately 282 GiB available storage.
+
+Execution: detached install.sh under artifacts/isaac601-install-20261002;
+install.log, install.pid, status.txt and freeze.txt retain progress and resolved
+packages. After pip check and the exact version check, the job automatically
+renders four views with no timeline play or hardware connection. It verifies
+that scene.usda's SHA-256 is unchanged before and after rendering. Output goes
+under the same artifact directory's render/ and render.log. A renderer error or
+failed report leaves a FAILED status; successful images still require user review.
+No stage edits or commit are authorized until the recovered simulator validates
+that the clean scene opens and renders. This background job does not commit.
+
+Acceptance: 5.1 GUI retry FAIL; Python 3.12 virtual environment created and
+torch==2.11.0+cu128 installed. Independent 6.0.1 installation IN PROGRESS; the
+5.88 GB Kit cache wheel advanced from 119 MB to 1.77 GB over approximately 30
+seconds, around 50 MB/s, without a download error. Detached installer PID is
+121696; it continues independently of SSH. Per user instruction, stop download
+supervision now and wait for the background installation/validation results.
+6.0.1 startup/render NOT RUN yet. The original clean-scene static PASS results
+remain valid. Check status.txt and actual render/report.json before updating
+these conclusions or proceeding with visual alignment and commit.
+
+
+### Recovered runtime and cleanup acceptance — 2026-10-02
+
+- PASS: Python 3.12.14 environment at ~/venv/isaacsim-6.0.1; all installed Isaac
+  packages pinned to 6.0.1.0, torch 2.11.0+cu128, and pip check reports no broken
+  requirements. The detached install/render job finished successfully.
+- PASS: actual RTX startup and four 1600x1000 views of the active clean workcell
+  on li1013-MS-7E11 / RTX 4070 Ti SUPER / NVIDIA 595.91.07. Startup reaches app
+  ready; total first capture job duration is approximately 103 seconds.
+- PASS: agent review of all four images confirms no photographic panorama or
+  finite-room background. Only the retained table, UR12e/Hand-E, open carton and
+  red cube are visible with the neutral floor and lighting. The saved HOME and
+  saved camera are unchanged. Timeline time is 0 and no hardware is accessed.
+- PASS: source USD checksum is unchanged before/after rendering and matches the
+  local clean scene. No source stage save occurred during the render probe.
+- PASS: per the user's explicit removal request, delete ~/isaacsim (confirmed
+  5.1.0-rc.19), the old IsaacSim.desktop launcher, its standalone 5.1.0 Downloads
+  ZIP, and the empty ~/issacsim and ~/Downloads/issacsim directories. All five
+  paths are now absent. No stale Isaac path appears in shell startup files.
+  The 6.0.0 asset archives and ~/issac_assets were outside this runtime cleanup.
+- NOT RUN: physical settling/motion. Human visual alignment PASS on 2026-10-02; the user authorized committing
+  this scope. The environment recovery and clean-stage render are accepted.
+
+Station evidence: artifacts/isaac601-install-20261002/status.txt records PASS;
+freeze.txt records resolved packages; render/report.json and four PNGs record
+actual cameras, timeline and scene hash. removed-51.json records exact removals.
+The same render evidence is copied to local artifacts/isaac601-install-20261002/
+render/. Keep it Git-ignored; versioned conclusions are recorded here.
+
+
+### User alignment and layout reference — 2026-10-02
+
+The user accepted the clean stage and authorized a commit. Background removal
+and recovered-runtime rendering are accepted; broader PhysX settling and physical
+motion acceptance remain outside this change. Preserve all panoramic source
+payloads in LFS. Do not push automatically.
+
+The user requested world-axis directions and named tabletop corners for future
+layout instructions. See workcell-coordinates.md for A/B/C/D labels. Coordinates
+were checked against the saved tabletop's world-space USD bounding box; this
+reference document adds no stage geometry or behavior.

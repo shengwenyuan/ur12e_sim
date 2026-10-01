@@ -13,10 +13,10 @@ from pxr import Gf, Usd, UsdGeom, UsdLux, UsdPhysics, UsdShade, UsdUtils
 # pylint: enable=import-error
 
 import compose_scene
-import projected_room
 
 SCENE = "versteel_box_pick_place"
-LENGTH, WIDTH, NATIVE_HEIGHT = 1.8288, 0.762, 0.8128
+LENGTH, WIDTH, HEIGHT = 1.8288, 0.762, 0.85
+NATIVE_HEIGHT = 0.8128
 EDGE, DENSITY = 0.03, 1240.0
 BACK_GAP, BASE_GAP = 0.235, 0.9
 BASE_FROM_CORNER = LENGTH - BACK_GAP - 0.047 / 2 - BASE_GAP
@@ -111,16 +111,13 @@ def place(
 # pylint: disable-next=too-many-locals
 def build(root: pathlib.Path, collection_root: pathlib.Path) -> dict:
     """Validate collection HOME and apply the saved tabletop placement."""
-    layout = json.loads(
-        (root / "scenes/tabletop_home/layout.json").read_text()
-    )
+    layout = json.loads((root / "scenes/tabletop_home/layout.json").read_text())
     compose_scene.check_home(collection_root, layout["robot"]["home_deg"])
     source = collection_root / "src/ur12e_collection/simulation/profile.py"
     layout["robot"]["home_source_sha256"] = hashlib.sha256(
         source.read_bytes()
     ).hexdigest()
-    room = projected_room.load(root / "scenes" / SCENE / "room.json")
-    height = room["table_height_m"]
+    height = HEIGHT
     output = root / "scenes" / SCENE / "scene.usda"
     output.parent.mkdir(parents=True, exist_ok=True)
     cube = cube_asset(root)
@@ -131,9 +128,7 @@ def build(root: pathlib.Path, collection_root: pathlib.Path) -> dict:
     stage.SetMetadataByDictKey(
         "customLayerData", "cameraSettings:boundCamera", "/World/Camera"
     )
-    table = (
-        root / "assets/furniture/versteel_table_3072/isaac/table_fixed.usda"
-    )
+    table = root / "assets/furniture/versteel_table_3072/isaac/table_fixed.usda"
     fixture = place(
         stage, "/World/Table", table, (LENGTH / 2 - BASE_FROM_CORNER, 0, 0)
     )
@@ -157,7 +152,7 @@ def build(root: pathlib.Path, collection_root: pathlib.Path) -> dict:
     layout["world"] = {
         "origin": "Floor directly below the robot mounting base",
         "x_axis": "Table length; positive from base toward carton",
-        "y_axis": "Left while looking along +X; blinds lie toward -Y",
+        "y_axis": "Left while looking along +X",
         "z_axis": "up",
     }
     layout["robot"]["base_position_m"] = [0, 0, height]
@@ -199,7 +194,8 @@ def build(root: pathlib.Path, collection_root: pathlib.Path) -> dict:
         "position_policy": "user-refined XY; original seeded yaw retained",
         "support_clearance_m": 0.001,
     }
-    layout["background"] = environment(stage, room)
+    environment(stage)
+    layout["background"] = {"mode": "none", "lighting": "neutral"}
     stage.GetRootLayer().Save()
     (output.parent / "layout.json").write_text(
         json.dumps(layout, indent=2) + "\n"
@@ -211,19 +207,13 @@ def build(root: pathlib.Path, collection_root: pathlib.Path) -> dict:
     return report
 
 
-def environment(stage, room: dict) -> dict:
-    """Keep fixed finite background geometry separate from physical support."""
+def environment(stage) -> None:
+    """Add a visible support floor, neutral lights and the saved observer."""
     floor = UsdGeom.Cube.Define(stage, "/World/Floor")
     floor.CreateSizeAttr(1)
     floor.AddTranslateOp().Set(Gf.Vec3d(0, 0, -0.01))
     floor.AddScaleOp().Set(Gf.Vec3f(12, 12, 0.02))
     UsdPhysics.CollisionAPI.Apply(floor.GetPrim())
-    # The projected floor is visual; this slab still supports physics.
-    UsdGeom.Imageable(floor).MakeInvisible()
-    output = pathlib.Path(stage.GetRootLayer().realPath)
-    background_path = output.with_name("lab_background.usda")
-    report = projected_room.build(background_path, room)
-    place(stage, "/World/LabBackground", background_path, (0, 0, 0))
     dome = UsdLux.DomeLight.Define(stage, "/World/Environment")
     dome.CreateIntensityAttr(800)
     dome.CreateColorAttr(Gf.Vec3f(0.5))
@@ -233,7 +223,7 @@ def environment(stage, room: dict) -> dict:
     scene = UsdPhysics.Scene.Define(stage, "/World/PhysicsScene")
     scene.CreateGravityDirectionAttr(Gf.Vec3f(0, 0, -1))
     scene.CreateGravityMagnitudeAttr(9.81)
-    height_delta = room["table_height_m"] - NATIVE_HEIGHT
+    height_delta = HEIGHT - NATIVE_HEIGHT
     camera = UsdGeom.Camera.Define(stage, "/World/Camera")
     camera.CreateFocalLengthAttr(27)
     camera.AddTransformOp().Set(
@@ -247,17 +237,6 @@ def environment(stage, room: dict) -> dict:
         )
         .GetInverse()
     )
-    capture = UsdGeom.Camera.Define(stage, "/World/CaptureCamera")
-    capture.CreateHorizontalApertureAttr(36)
-    capture.CreateFocalLengthAttr(18)
-    capture.CreateClippingRangeAttr(Gf.Vec2f(0.01, 100))
-    origin = Gf.Vec3d(*room["capture_position_m"])
-    capture.AddTransformOp().Set(
-        Gf.Matrix4d()
-        .SetLookAt(origin, origin + Gf.Vec3d(1, 0, 0), Gf.Vec3d(0, 0, 1))
-        .GetInverse()
-    )
-    return report
 
 
 def validate(path: pathlib.Path) -> dict:
@@ -279,9 +258,7 @@ def validate(path: pathlib.Path) -> dict:
         stage.GetPrimAtPath("/World/Table/Visuals/Tabletop")
     ).ComputeAlignedRange()
     layout = json.loads((path.parent / "layout.json").read_text())
-    assert (
-        abs(top.GetMax()[2] - layout["table"]["top_surface_height_m"]) < 1e-5
-    )
+    assert abs(top.GetMax()[2] - layout["table"]["top_surface_height_m"]) < 1e-5
     box = stage.GetPrimAtPath("/World/Props/OpenDynamixelBox")
     transforms = UsdGeom.XformCache()
     matrix = transforms.GetLocalToWorldTransform(box)
@@ -325,9 +302,7 @@ def supported_components(stage, cache) -> dict:
             for axis in (0, 1):
                 assert top.GetMin()[axis] < bounds.GetMin()[axis]
                 assert bounds.GetMax()[axis] < top.GetMax()[axis]
-            assert (
-                UsdPhysics.RigidBodyAPI(prim).GetRigidBodyEnabledAttr().Get()
-            )
+            assert UsdPhysics.RigidBodyAPI(prim).GetRigidBodyEnabledAttr().Get()
         counts[prim.GetName()] = sum(
             p.HasAPI(UsdPhysics.CollisionAPI) for p in Usd.PrimRange(prim)
         )
