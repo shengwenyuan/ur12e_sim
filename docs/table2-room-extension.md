@@ -2,25 +2,25 @@
 
 **Code style requirement: Economical code, exceptional readability, and excellent abstraction design.**
 
-Status: accepted. The user confirmed the refined preview and authorized
-committing and pushing main on 2026-10-02.
+Status: accepted. The user approved the board-width refinement commit and
+push on 2026-10-03 after station rendering.
 
 ## Scope
 
 Retain the accepted workcell from 3d20126. Add matte white paint walls at the
-opposite end of the 4 m board run, followed by an orthogonal glazed room wall.
+opposite end of the 3.4 m board run, followed by an orthogonal glazed room wall.
 Use the Table2 frame from docs/workcell-coordinates.md: u points A-to-B,
 v points B-to-C. The board run goes from B toward -u. The far-end
-anchor is B - 4u = (1.67805, -2.68188, 0) m.
+anchor is B - 3.4u = (1.88326, -2.11806, 0) m.
 
 The end-wall footprint is 14 inches = 0.3556 m along u (board width direction) and 0.1524 m
 along v (normal to board face), confirmed by the user. It extends beyond the
 board's far end in -u and from the board back face toward +v. Its height is 3 m.
-In the Table2 B-origin frame it occupies u=[-4.3556,-4], v=[-0.018,0.1344].
+In the Table2 B-origin frame it occupies u=[-3.7556,-3.4], v=[-0.018,0.1344].
 
 The room wall is 4.0465 m long, 3 m high and 0.08 m thick. It extends toward +v
 (table side), perpendicular to the boards. Align its outer face to the end
-wall's outer -u face: u=[-4.3556,-4.2756]. Start at the end wall's room-side face
+wall's outer -u face: u=[-3.7556,-3.6756]. Start at the end wall's room-side face
 v=0.1344 and end at v=4.1809. The length excludes the end-wall footprint.
 
 Glass panes have bottoms at 16 inches = 0.4064 m above the floor, heights
@@ -134,3 +134,21 @@ artifacts/room-refined-20261002.log. Scene SHA-256:
 ed3b56f010c6747e31b6548d60db2ce77fa570cc795ed48b91ed0c85f40b13f8.
 Keep the initial preview evidence above as history; these refinement results
 supersede its size and placement conclusions.
+
+## Board-width refinement — 2026-10-02
+
+See docs/table2-furniture.md for the aligned primary plan. The board run is
+now 3.4 m, requiring the entire room frame to move by +0.6u while retaining
+every local room shape, glass pane, frame and material. The new room origin
+is approximately (1.6353467, -2.4062516, 0) m. The extension's dimensions
+and the far solid wall's 0.3 m length are unchanged. Static checks pass,
+including exactly +0.6u translation and unchanged local room fields; see the primary plan for results. The user deferred station
+synchronization and rendering until an Isaac station is available.
+
+Station follow-up on 2026-10-03: the primary furniture plan records PASS for
+15 relevant station USD tests and five Isaac 6.0.1.0 static previews. Both
+sides of the glazed wall were captured; scene checksum and persistent
+observer remain unchanged. User visual acceptance is still pending.
+
+The user approved committing and pushing the refined layout on 2026-10-03.
+User visual acceptance for this refinement is PASS.

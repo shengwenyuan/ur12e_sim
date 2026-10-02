@@ -9,9 +9,12 @@ from pxr import Gf, Sdf, Usd, UsdGeom, UsdPhysics, UsdShade
 # pylint: enable=import-error
 
 import compose_scene
+import cut_wood_board
 
-BOARD_WIDTH, BOARD_HEIGHT, BOARD_THICKNESS = 2.0, 2.5, 0.018
-WALL_HEIGHT, WALL_THICKNESS, SHORT_WALL_LENGTH = 3.0, 0.14605, 0.682
+BOARD_WIDTHS = (2.0, 1.4)
+BOARD_RUN_LENGTH = sum(BOARD_WIDTHS)
+BOARD_HEIGHT, BOARD_THICKNESS = 2.5, 0.018
+WALL_HEIGHT, WALL_THICKNESS, SHORT_WALL_LENGTH = 3.0, 0.14605, 0.642
 GROUP = "/World/Furniture"
 BUILTIN_MDL = "OmniPBR.mdl"
 
@@ -63,8 +66,10 @@ def walls(stage, anchor, u, v, yaw: float) -> None:
     placements = (
         (
             "LongWall",
-            anchor - u * BOARD_WIDTH - v * (BOARD_THICKNESS + WALL_THICKNESS / 2),
-            (2 * BOARD_WIDTH, WALL_THICKNESS, WALL_HEIGHT),
+            anchor
+            - u * (BOARD_RUN_LENGTH / 2)
+            - v * (BOARD_THICKNESS + WALL_THICKNESS / 2),
+            (BOARD_RUN_LENGTH, WALL_THICKNESS, WALL_HEIGHT),
         ),
         (
             "ShortWall",
@@ -80,23 +85,33 @@ def walls(stage, anchor, u, v, yaw: float) -> None:
         prim.GetAttribute("xformOp:rotateZ").Set(yaw)
 
 
+def place_boards(stage, source: pathlib.Path, table2: dict) -> dict:
+    """Keep the BC endpoint and seam fixed while cutting only the far board."""
+    b, u, v = frame(table2["corners_m"])
+    boards = (source, cut_wood_board.build(source, BOARD_WIDTHS[1]))
+    positions, distance = {}, 0.0
+    for index, (asset, width) in enumerate(zip(boards, BOARD_WIDTHS, strict=True)):
+        name = "Board" + str(index + 1)
+        center = b - u * (distance + width / 2) - v * (BOARD_THICKNESS / 2)
+        center[2] = BOARD_HEIGHT / 2
+        prim = compose_scene.place(
+            stage, GROUP + "/" + name, asset, tuple(center), table2["yaw_deg"] + 180
+        )
+        UsdPhysics.RigidBodyAPI(prim).CreateRigidBodyEnabledAttr(False)
+        positions[name] = list(center)
+        distance += width
+    return positions
+
+
 def build(stage, root: pathlib.Path, table2: dict) -> dict:
     """Place two boards, one chair and two walls without stepping physics."""
     b, u, v = frame(table2["corners_m"])
     yaw = table2["yaw_deg"]
     directory = root / "assets/furniture"
-    board = directory / "wood_board/isaac/wood_board.usdc"
+    positions = place_boards(
+        stage, directory / "wood_board/isaac/wood_board.usdc", table2
+    )
     chair = directory / "red_cushion_caster_chair/isaac/chair_fixed.usda"
-    positions = {}
-    for index in range(2):
-        name = "Board" + str(index + 1)
-        center = b - u * (BOARD_WIDTH * (index + 0.5)) - v * (BOARD_THICKNESS / 2)
-        center[2] = BOARD_HEIGHT / 2
-        prim = compose_scene.place(
-            stage, GROUP + "/" + name, board, tuple(center), yaw + 180
-        )
-        UsdPhysics.RigidBodyAPI(prim).CreateRigidBodyEnabledAttr(False)
-        positions[name] = list(center)
     # The source chair faces -Y; this rotation maps its front to C-to-D.
     center = Gf.Vec3d(*table2["corners_m"]["C"]) - u * 0.1 + v * (0.545 / 2 + 0.05)
     center[2] = 0
@@ -110,7 +125,8 @@ def build(stage, root: pathlib.Path, table2: dict) -> dict:
         "chair_yaw_deg": yaw - 90,
         "wall_height_m": WALL_HEIGHT,
         "wall_thickness_m": WALL_THICKNESS,
-        "long_wall_length_m": 2 * BOARD_WIDTH,
+        "board_widths_m": list(BOARD_WIDTHS),
+        "long_wall_length_m": BOARD_RUN_LENGTH,
         "short_wall_length_m": SHORT_WALL_LENGTH,
         "material": "white OmniPBR; roughness 0.9; metallic 0",
         "runtime_dependency": BUILTIN_MDL,
@@ -138,7 +154,8 @@ def validate(stage, table2: dict) -> dict:
             UsdPhysics.CollisionAPI(p).GetCollisionEnabledAttr().Get() for p in shapes
         )
         if name.startswith("Board"):
-            assert abs(bounds.GetSize()[0] - BOARD_WIDTH) < 1e-5
+            width = BOARD_WIDTHS[int(name[-1]) - 1]
+            assert abs(bounds.GetSize()[0] - width) < 1e-5
             assert abs(bounds.GetSize()[2] - BOARD_HEIGHT) < 1e-5
             assert Gf.Dot(matrix.TransformDir(Gf.Vec3d(0, -1, 0)), v) > 0.99999
             bodies.append((center, bounds))
@@ -154,12 +171,12 @@ def validate(stage, table2: dict) -> dict:
             # Even the chair's innermost edge is beyond the wall's C-side end.
             assert Gf.Dot(center - b, v) + bounds.GetMin()[0] > SHORT_WALL_LENGTH
         measured[name] = {"center_m": list(center), "colliders": len(shapes)}
-    end = bodies[0][0] + u * BOARD_WIDTH / 2
+    end = bodies[0][0] + u * BOARD_WIDTHS[0] / 2
     assert abs(Gf.Dot(end - b, u)) < 1e-6
     assert abs(Gf.Dot(end - b, v) + BOARD_THICKNESS / 2) < 1e-6
-    assert abs((bodies[0][0] - bodies[1][0]).GetLength() - BOARD_WIDTH) < 1e-6
+    assert abs((bodies[0][0] - bodies[1][0]).GetLength() - BOARD_RUN_LENGTH / 2) < 1e-6
     for name, dimensions in (
-        ("LongWall", (4, WALL_THICKNESS, WALL_HEIGHT)),
+        ("LongWall", (BOARD_RUN_LENGTH, WALL_THICKNESS, WALL_HEIGHT)),
         ("ShortWall", (WALL_THICKNESS, SHORT_WALL_LENGTH, WALL_HEIGHT)),
     ):
         prim = stage.GetPrimAtPath(GROUP + "/" + name)

@@ -94,7 +94,9 @@ def build(stage, table2: dict) -> dict:
     """Attach the end block and glazed wall using Table2's measured frame."""
     b, u, v = workcell_furniture.frame(table2["corners_m"])
     anchor = (
-        b - u * (4 + END_WIDTH) + v * (END_DEPTH - workcell_furniture.BOARD_THICKNESS)
+        b
+        - u * (workcell_furniture.BOARD_RUN_LENGTH + END_WIDTH)
+        + v * (END_DEPTH - workcell_furniture.BOARD_THICKNESS)
     )
     room = UsdGeom.Xform.Define(stage, GROUP)
     room.AddTranslateOp().Set(anchor)
@@ -181,7 +183,10 @@ def validate(stage, table2: dict) -> dict:
     assert Gf.Dot(matrix.TransformDir(Gf.Vec3d(0, 1, 0)), v) > 0.99999
     assert abs(Gf.Dot(matrix.TransformDir(Gf.Vec3d(0, 1, 0)), u)) < 1e-6
     start = matrix.ExtractTranslation()
-    assert abs(Gf.Dot(start - b, u) + 4 + END_WIDTH) < 1e-6
+    assert (
+        abs(Gf.Dot(start - b, u) + workcell_furniture.BOARD_RUN_LENGTH + END_WIDTH)
+        < 1e-6
+    )
     assert (
         abs(Gf.Dot(start - b, v) - (END_DEPTH - workcell_furniture.BOARD_THICKNESS))
         < 1e-6
