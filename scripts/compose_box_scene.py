@@ -13,6 +13,7 @@ from pxr import Gf, Usd, UsdGeom, UsdLux, UsdPhysics, UsdShade, UsdUtils
 # pylint: enable=import-error
 
 import compose_scene
+import calibrated_cameras
 import workcell_furniture
 import room_extension
 
@@ -202,6 +203,9 @@ def build(root: pathlib.Path, collection_root: pathlib.Path) -> dict:
     layout["room_extension"] = room_extension.build(stage, layout["table2"])
     environment(stage)
     layout["background"] = {"mode": "none", "lighting": "neutral"}
+    calibration = root / calibrated_cameras.CONFIG
+    if calibration.is_file():
+        calibrated_cameras.build(stage, json.loads(calibration.read_text()))
     stage.GetRootLayer().Save()
     (output.parent / "layout.json").write_text(json.dumps(layout, indent=2) + "\n")
     report = validate(output)

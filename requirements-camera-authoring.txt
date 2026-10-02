@@ -1,0 +1,5 @@
+# Offline RGB camera import, numerical model checks and USD authoring.
+numpy==2.3.3
+PyYAML==6.0.3
+scipy==1.16.2
+usd-core==26.8

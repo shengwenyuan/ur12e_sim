@@ -1,0 +1,334 @@
+{
+  "schema_version": 1,
+  "status": "preview_pending_mount_confirmation",
+  "resolution": [
+    640,
+    480
+  ],
+  "fps": 30,
+  "source_repository": "camera_calibration_ur12e",
+  "source_revision": "7cd6dea72f46891b7bac4e7514fa3fd311170f2c",
+  "tcp_offset_assumption": "zero; calibration reads actual_tcp, not URDF flange",
+  "mounts_unchanged": "unconfirmed",
+  "cameras": {
+    "camera_1": {
+      "serial": "260522273667",
+      "model": "D405",
+      "reference_link": "tool0",
+      "reference_status": "zero_tcp_assumed",
+      "optical_to_reference": [
+        [
+          -0.9999926415371424,
+          -0.0031193791840629093,
+          -0.0022330125557727953,
+          0.009506316168067613
+        ],
+        [
+          0.0012727761211824978,
+          -0.8188858511999093,
+          0.5739550006277019,
+          -0.0670547883571571
+        ],
+        [
+          -0.0036189656690201674,
+          0.5739479350760891,
+          0.8188837957301269,
+          0.08313202218516969
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "extrinsics_source": {
+        "path": "data/camera_1/handeye/final_result_all_30.yaml",
+        "sha256": "526c5f5d05899d4b4e42ae00671cddc6497abf738362b2be5d31157c2bd3e17a",
+        "timestamp": "2026-09-26T19:11:51.499+00:00",
+        "source": "solved"
+      },
+      "extrinsics_original_meaning": "T_flange_camera: camera pose expressed in the robot flange frame",
+      "extrinsics_warnings": [],
+      "intrinsics_source": {
+        "path": "data/camera_1/intrinsics/result.yaml",
+        "sha256": "1ab11f0acf244101f8b87b7f919f34687a4a8cab8e2fcd901bd758dab6bcdf25",
+        "timestamp": "2026-09-29T21:34:59.778+00:00",
+        "source": "factory"
+      },
+      "intrinsics": {
+        "fx": 394.77423095703125,
+        "fy": 394.37969970703125,
+        "cx": 313.8695983886719,
+        "cy": 242.0767822265625
+      },
+      "source_distortion": [
+        -0.05486779659986496,
+        0.057931751012802124,
+        0.0003447499475441873,
+        0.00032721570460125804,
+        -0.019563160836696625
+      ],
+      "renderer_model": "opencvPinhole",
+      "source_distortion_model": "distortion.inverse_brown_conrady",
+      "renderer_distortion": [
+        -0.054867489565508985,
+        0.05793114169694297,
+        0.0003391212454681471,
+        0.00032071549330626813,
+        -0.019562998489976245
+      ],
+      "conversion": {
+        "method": "forward OpenCV fit to librealsense inverse-Brown projection",
+        "sdk_version": "2.58.4",
+        "reference": "https://github.com/realsenseai/librealsense/blob/v2.58.4/src/rs.cpp",
+        "fit_grid": [
+          81,
+          61
+        ],
+        "verification_ray_grid": [
+          640,
+          480
+        ],
+        "normalized_domain_margin": 1.05,
+        "max_error_px": 0.003974845933736645,
+        "rms_error_px": 0.0012275182609302196,
+        "limit_px": 0.1
+      }
+    },
+    "camera_2": {
+      "serial": "327122073926",
+      "model": "D435IF",
+      "reference_link": "base",
+      "reference_status": "controller_base",
+      "optical_to_reference": [
+        [
+          0.6715278979288364,
+          0.08782642677193722,
+          0.7357559385174889,
+          -0.23588764582271718
+        ],
+        [
+          -0.7408555929961265,
+          0.09772262893124867,
+          0.6645173271790008,
+          -0.8761312557553869
+        ],
+        [
+          -0.01353782218953728,
+          -0.9913308259885987,
+          0.13069017107313582,
+          0.20927885775012273
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "extrinsics_source": {
+        "path": "data/camera_2/handeye/final_result_all_30.yaml",
+        "sha256": "a1c23ee073437096bad3d25be813848c184cf3ef2f7d759a76c9b3dee2ec9d96",
+        "timestamp": "2026-09-26T18:52:03.832+00:00",
+        "source": "solved"
+      },
+      "extrinsics_original_meaning": "T_base_camera: camera pose expressed in the robot base frame",
+      "extrinsics_warnings": [],
+      "intrinsics_source": {
+        "path": "data/camera_2/intrinsics/result.yaml",
+        "sha256": "e4c9f40928f81bbdbaf4852edf86bc715a4c689bc12b99a239c7320272de5c6e",
+        "timestamp": "2026-09-29T22:23:48.045+00:00",
+        "source": "blended"
+      },
+      "intrinsics": {
+        "fx": 607.2200641121351,
+        "fy": 608.4456081987049,
+        "cx": 331.09142164744105,
+        "cy": 255.07064346927933
+      },
+      "source_distortion": [
+        0.15675576727601268,
+        -0.5040102100102966,
+        0.005353365703038528,
+        0.0003385986613904735,
+        0.4845345863506629
+      ],
+      "renderer_model": "opencvPinhole",
+      "source_distortion_model": "opencv_brown_conrady",
+      "renderer_distortion": [
+        0.15675576727601268,
+        -0.5040102100102966,
+        0.005353365703038528,
+        0.0003385986613904735,
+        0.4845345863506629
+      ],
+      "blend": {
+        "camera_matrix_from": {
+          "file": "/home/robot2026fall/camera_calibration/data/camera_2/intrinsics/result.yaml",
+          "resolution": [
+            640,
+            480
+          ],
+          "source": "solved",
+          "observation_count": 30,
+          "rms_reprojection_error_px": 0.36317048337655716,
+          "timestamp": "2026-09-29T22:07:33.969+00:00"
+        },
+        "distortion_from": {
+          "file": "data/camera_2/intrinsics/sessions/2026-09-29_144120/result.yaml",
+          "resolution": [
+            1280,
+            720
+          ],
+          "source": "solved",
+          "observation_count": 30,
+          "rms_reprojection_error_px": 0.2743270591834559,
+          "timestamp": "2026-09-24T20:33:37.337+00:00"
+        },
+        "reason": "640x480 crops 25% horizontally off 1280x720, halving the corners beyond 0.7r; check_distortion.py returns INCONCLUSIVE at 480p for both D435IFs, while the 720p solves agreed across two units to ~4%",
+        "note": "Nothing was refitted. fx, fy, cx and cy are in pixels and belong to the resolution they were measured at; the distortion coefficients act on normalised coordinates and do not."
+      },
+      "pure_480p_alternative": {
+        "source": {
+          "path": "data/camera_2/intrinsics/result_480p_solved.yaml",
+          "sha256": "81861e6b2ed9f1869f91603b6599b322389ece91528119d08026c7c323c232dc",
+          "timestamp": "2026-09-29T22:07:33.969+00:00",
+          "source": "solved"
+        },
+        "intrinsics": {
+          "fx": 607.2200641121351,
+          "fy": 608.4456081987049,
+          "cx": 331.09142164744105,
+          "cy": 255.07064346927933
+        },
+        "distortion": [
+          0.12324884278444771,
+          -0.24965632684998174,
+          0.003987212774161752,
+          0.0009542303282116177,
+          -0.024147806238057786
+        ],
+        "status": "comparison_only; distortion observability inconclusive"
+      }
+    },
+    "camera_3": {
+      "serial": "327122075735",
+      "model": "D435IF",
+      "reference_link": "base",
+      "reference_status": "controller_base",
+      "optical_to_reference": [
+        [
+          -0.8561058401338083,
+          0.1005472128612197,
+          0.5069250915812187,
+          -0.07309778592674006
+        ],
+        [
+          -0.5160318397148447,
+          -0.11283399143831968,
+          -0.8491051941759696,
+          0.9019272720614242
+        ],
+        [
+          -0.02817677925703395,
+          -0.9885134032282715,
+          0.14848340226692858,
+          0.20869025426194793
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "extrinsics_source": {
+        "path": "data/camera_3/handeye/final_result_all_30.yaml",
+        "sha256": "4853ac440db5ef62c26a8ccd56acd14543d137bc8c597905add1417b21d8d116",
+        "timestamp": "2026-09-26T18:52:55.638+00:00",
+        "source": "solved"
+      },
+      "extrinsics_original_meaning": "T_base_camera: camera pose expressed in the robot base frame",
+      "extrinsics_warnings": [
+        "The five solver methods disagree by up to 26.2 mm. That is a strong sign of degenerate poses or a wrong eye-in-hand/eye-to-hand mode"
+      ],
+      "intrinsics_source": {
+        "path": "data/camera_3/intrinsics/result.yaml",
+        "sha256": "2cd7aa466f25f188c1bd4e364ae35dbae542d380e12ed05c216cffb4c7e37c4d",
+        "timestamp": "2026-09-29T22:24:04.775+00:00",
+        "source": "blended"
+      },
+      "intrinsics": {
+        "fx": 614.8015986570812,
+        "fy": 615.2190048065,
+        "cx": 326.2477601197115,
+        "cy": 241.6707335941726
+      },
+      "source_distortion": [
+        0.14722479204198202,
+        -0.4851447619373286,
+        0.0029970243767067197,
+        0.0028379012653395254,
+        0.46622635857003913
+      ],
+      "renderer_model": "opencvPinhole",
+      "source_distortion_model": "opencv_brown_conrady",
+      "renderer_distortion": [
+        0.14722479204198202,
+        -0.4851447619373286,
+        0.0029970243767067197,
+        0.0028379012653395254,
+        0.46622635857003913
+      ],
+      "blend": {
+        "camera_matrix_from": {
+          "file": "/home/robot2026fall/camera_calibration/data/camera_3/intrinsics/result.yaml",
+          "resolution": [
+            640,
+            480
+          ],
+          "source": "solved",
+          "observation_count": 30,
+          "rms_reprojection_error_px": 0.42027016087648134,
+          "timestamp": "2026-09-29T22:07:34.415+00:00"
+        },
+        "distortion_from": {
+          "file": "data/camera_3/intrinsics/sessions/2026-09-29_145536/result.yaml",
+          "resolution": [
+            1280,
+            720
+          ],
+          "source": "solved",
+          "observation_count": 30,
+          "rms_reprojection_error_px": 0.3904692826991663,
+          "timestamp": "2026-09-24T20:52:47.606+00:00"
+        },
+        "reason": "640x480 crops 25% horizontally off 1280x720, halving the corners beyond 0.7r; check_distortion.py returns INCONCLUSIVE at 480p for both D435IFs, while the 720p solves agreed across two units to ~4%",
+        "note": "Nothing was refitted. fx, fy, cx and cy are in pixels and belong to the resolution they were measured at; the distortion coefficients act on normalised coordinates and do not."
+      },
+      "pure_480p_alternative": {
+        "source": {
+          "path": "data/camera_3/intrinsics/result_480p_solved.yaml",
+          "sha256": "ce56f26336bf1692f2febb41f34a168f97f86eab4aa43663ede260d6e01bc344",
+          "timestamp": "2026-09-29T22:07:34.415+00:00",
+          "source": "solved"
+        },
+        "intrinsics": {
+          "fx": 614.8015986570812,
+          "fy": 615.2190048065,
+          "cx": 326.2477601197115,
+          "cy": 241.6707335941726
+        },
+        "distortion": [
+          0.11012980692012107,
+          -0.08939216077846196,
+          -0.001539163490552368,
+          -0.00017225832943776163,
+          -0.5061707558701417
+        ],
+        "status": "comparison_only; distortion observability inconclusive"
+      }
+    }
+  }
+}

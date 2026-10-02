@@ -22,6 +22,17 @@ Deliver the scene and referenced assets together. This replaces the initial
 browser-viewer proposal and does not require Gazebo or a new runtime image.
 
 
+## Calibrated 480p workcell views
+
+The Versteel box scene includes serial-specific camera_1 (D405) and camera_2/3
+(D435IF) RGB cameras using config/cameras/rig_480p.json. All views are 640x480;
+D435IF uses the September 30 canonical 480p K with wider-field distortion.
+The wrist references tool0 under the provisional zero-TCP assumption.
+See [configuration and acceptance](docs/calibrated-camera-preview.md) for
+provenance, pure-480p alternatives, reproduction and remaining confirmations.
+The existing fixture-only inference adapter has not been changed.
+
+
 ## Ubuntu GUI render probe
 
 A table-only stage is available at
