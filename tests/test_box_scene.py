@@ -16,6 +16,7 @@ sys.path.insert(0, str(ROOT / "scripts"))
 import compose_box_scene
 import kinematics
 import wall_materials
+import calibrated_cameras
 
 
 class BoxSceneTest(unittest.TestCase):
@@ -71,6 +72,54 @@ class BoxSceneTest(unittest.TestCase):
             checked += 1
         self.assertGreaterEqual(checked, 7)
 
+    def test_visual_camera_tripods_are_grounded_and_static(self):
+        """Keep coarse supports separate from the active calibrated views."""
+        cache = UsdGeom.XformCache()
+        bounds = UsdGeom.BBoxCache(
+            Usd.TimeCode.Default(), ["default", "render", "proxy"]
+        )
+        base = calibrated_cameras.reference_link(self.stage, "base")
+        for name in ("camera_2", "camera_3"):
+            tripod = self.stage.GetPrimAtPath("/World/CameraTripods/" + name)
+            camera = self.stage.GetPrimAtPath(base.GetPath().AppendChild(name))
+            matrix = cache.GetLocalToWorldTransform(tripod)
+            optical = cache.GetLocalToWorldTransform(camera)
+            self.assertAlmostEqual(
+                bounds.ComputeWorldBound(tripod).ComputeAlignedRange().GetMin()[2],
+                0,
+                places=7,
+            )
+            self.assertFalse(
+                UsdPhysics.RigidBodyAPI(tripod).GetRigidBodyEnabledAttr().Get()
+            )
+            self.assertFalse(
+                self.stage.GetPrimAtPath(
+                    tripod.GetPath().AppendChild("Sensors")
+                ).IsActive()
+            )
+            self.assertEqual(
+                sum(p.HasAPI(UsdPhysics.CollisionAPI) for p in Usd.PrimRange(tripod)),
+                40,
+            )
+            self.assertTrue(
+                all(
+                    UsdPhysics.CollisionAPI(p).GetCollisionEnabledAttr().Get()
+                    for p in Usd.PrimRange(tripod)
+                    if p.HasAPI(UsdPhysics.CollisionAPI)
+                )
+            )
+            for axis in (Gf.Vec3d(1, 0, 0), Gf.Vec3d(0, 1, 0), Gf.Vec3d(0, 0, 1)):
+                self.assertAlmostEqual(matrix.TransformDir(axis).GetLength(), 1)
+            heading = optical.TransformDir(Gf.Vec3d(0, 0, -1))
+            heading[2] = 0
+            self.assertGreater(
+                Gf.Dot(matrix.TransformDir(Gf.Vec3d(1, 0, 0)), heading.GetNormalized()),
+                0.99999,
+            )
+            delta = matrix.ExtractTranslation() - optical.ExtractTranslation()
+            delta[2] = 0
+            self.assertLess(delta.GetLength(), 0.1)
+
     def test_clean_environment_and_portable_dependencies(self):
         """No photographic backgrounds can enter the active workcell."""
         self.assertFalse(self.stage.GetPrimAtPath("/World/LabBackground"))
@@ -102,6 +151,7 @@ class BoxSceneTest(unittest.TestCase):
             "Floor",
             "FloorMaterial",
             "RoomFloor",
+            "CameraTripods",
             "Environment",
             "Key",
             "PhysicsScene",

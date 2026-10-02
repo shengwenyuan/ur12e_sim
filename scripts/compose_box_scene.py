@@ -22,6 +22,7 @@ import wall_materials
 import wall_validation
 import wall_fixtures
 import floor_material
+import camera_tripods
 
 SCENE = "versteel_box_pick_place"
 LENGTH, WIDTH, HEIGHT = 1.8288, 0.762, 0.85
@@ -215,7 +216,9 @@ def build(root: pathlib.Path, collection_root: pathlib.Path) -> dict:
     layout["background"] = {"mode": "none", "lighting": "neutral"}
     calibration = root / calibrated_cameras.CONFIG
     if calibration.is_file():
-        calibrated_cameras.build(stage, json.loads(calibration.read_text()))
+        camera_config = json.loads(calibration.read_text())
+        calibrated_cameras.build(stage, camera_config)
+        layout["camera_tripods"] = camera_tripods.build(stage, root, camera_config)
     stage.GetRootLayer().Save()
     (output.parent / "layout.json").write_text(json.dumps(layout, indent=2) + "\n")
     report = validate(output)
