@@ -113,3 +113,18 @@ RED_WALL = RedWallLayout()
 RED_WALL_REFERENCE = (
     PARTITION_PATH + "/Unit" + str(PARTITION.straight_count + RED_WALL.turning_panel)
 )
+
+
+@dataclass(frozen=True)
+class ExtinguisherMount:
+    """Wall fixture mounting dimensions, in meters."""
+
+    bottom_height: float = 0.6604
+    wall_gap: float = 0.005
+    wall_path: str = ROOM_PATH + "/EndWall"
+    adjacent_glazing_path: str = ROOM_PATH + "/Window1"
+    asset: str = "assets/props/fire_extinguisher/isaac/fire_extinguisher.usdc"
+
+
+EXTINGUISHER = ExtinguisherMount()
+EXTINGUISHER_PATH = FURNITURE_PATH + "/FireExtinguisher"

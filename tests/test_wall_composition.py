@@ -23,6 +23,7 @@ import room_extension
 import scene_geometry
 import wall_materials
 import workcell_furniture
+import wall_fixtures
 from wall_components import WallAssembly, WallPanel
 
 # pylint: enable=wrong-import-position
@@ -78,6 +79,7 @@ class WallCompositionTest(unittest.TestCase):
                 ("room_extension", room_extension.build(stage, layout["table2"])),
                 ("chair_side_glass", chair_side_glass.build(stage, layout["table2"])),
                 ("red_wall", red_wall.build(stage)),
+                ("fire_extinguisher", wall_fixtures.build(stage, target)),
             ):
                 self.assertEqual(result, layout[key], key)
             self.assertEqual(authored_fields(stage.GetRootLayer()), expected)

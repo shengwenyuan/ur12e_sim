@@ -20,6 +20,8 @@ import chair_side_glass
 import red_wall
 import wall_materials
 import wall_validation
+import wall_fixtures
+import floor_material
 
 SCENE = "versteel_box_pick_place"
 LENGTH, WIDTH, HEIGHT = 1.8288, 0.762, 0.85
@@ -207,6 +209,7 @@ def build(root: pathlib.Path, collection_root: pathlib.Path) -> dict:
     layout["room_extension"] = room_extension.build(stage, layout["table2"])
     layout["chair_side_glass"] = chair_side_glass.build(stage, layout["table2"])
     layout["red_wall"] = red_wall.build(stage)
+    layout["fire_extinguisher"] = wall_fixtures.build(stage, root)
     environment(stage)
     layout["background"] = {"mode": "none", "lighting": "neutral"}
     calibration = root / calibrated_cameras.CONFIG
@@ -228,6 +231,7 @@ def environment(stage) -> None:
     floor.AddTranslateOp().Set(Gf.Vec3d(0, 0, -0.01))
     floor.AddScaleOp().Set(Gf.Vec3f(16, 16, 0.02))
     UsdPhysics.CollisionAPI.Apply(floor.GetPrim())
+    floor_material.build(stage)
     dome = UsdLux.DomeLight.Define(stage, "/World/Environment")
     dome.CreateIntensityAttr(800)
     dome.CreateColorAttr(Gf.Vec3f(0.5))
@@ -299,6 +303,9 @@ def validate(path: pathlib.Path) -> dict:
         "room_extension": wall_validation.validate_room(stage, layout["table2"]),
         "chair_side_glass": wall_validation.validate_partition(stage, layout["table2"]),
         "red_wall": wall_validation.validate_red_wall(stage),
+        "fire_extinguisher": wall_validation.validate_extinguisher(
+            stage, path.parents[2]
+        ),
         "red_cube_mass_kg": DENSITY * EDGE**3,
         "render_validation": "NOT RUN",
         "settle_validation": "NOT RUN",

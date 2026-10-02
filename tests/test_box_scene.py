@@ -87,6 +87,7 @@ class BoxSceneTest(unittest.TestCase):
             "HandE",
             "Props",
             "Floor",
+            "FloorMaterial",
             "Environment",
             "Key",
             "PhysicsScene",

@@ -19,6 +19,8 @@ from wall_layout import (
     RED_WALL_PATH,
     RED_WALL_REFERENCE,
     GLASS_PATH,
+    EXTINGUISHER,
+    EXTINGUISHER_PATH,
 )
 
 
@@ -341,4 +343,60 @@ def validate_red_wall(stage) -> dict:
         "surface_clearance_m": gap,
         "viewer_endpoint_alignment": "PASS",
         "static_colliders": 1,
+    }
+
+
+def validate_extinguisher(stage: Usd.Stage, root) -> dict:
+    """Measure mounting height, wall/glass clearance and retained asset scale."""
+    fixture = stage.GetPrimAtPath(EXTINGUISHER_PATH)
+    bounds = scene_geometry.bounds_in_frame(stage, EXTINGUISHER_PATH, ROOM_PATH)
+    wall = scene_geometry.bounds_in_frame(stage, EXTINGUISHER.wall_path, ROOM_PATH)
+    glass = scene_geometry.bounds_in_frame(
+        stage, EXTINGUISHER.adjacent_glazing_path, ROOM_PATH
+    )
+    source = Usd.Stage.Open(str(root / EXTINGUISHER.asset))
+    expected = (
+        UsdGeom.BBoxCache(Usd.TimeCode.Default(), ["default", "render", "proxy"])
+        .ComputeWorldBound(source.GetDefaultPrim())
+        .ComputeAlignedRange()
+    )
+    for actual, size in zip(bounds.GetSize(), expected.GetSize(), strict=True):
+        assert abs(actual - size) < 1e-7
+    world = scene_geometry.bounds_in_frame(stage, EXTINGUISHER_PATH, "/World")
+    assert abs(world.GetMin()[2] - EXTINGUISHER.bottom_height) < 1e-7
+    gap = bounds.GetMin()[1] - wall.GetMax()[1]
+    assert abs(gap - EXTINGUISHER.wall_gap) < 1e-7
+    assert bounds.GetMin()[0] > glass.GetMax()[0]
+    assert bounds.GetMax()[0] < wall.GetMax()[0]
+    assert bounds.GetMax()[2] < wall.GetMax()[2]
+    cache = UsdGeom.XformCache()
+    front = cache.GetLocalToWorldTransform(fixture).TransformDir(Gf.Vec3d(0, -1, 0))
+    assert (
+        Gf.Dot(
+            front.GetNormalized(),
+            cache.GetLocalToWorldTransform(stage.GetPrimAtPath(ROOM_PATH))
+            .TransformDir(Gf.Vec3d(0, 1, 0))
+            .GetNormalized(),
+        )
+        > 0.99999
+    )
+    assert not UsdPhysics.RigidBodyAPI(fixture).GetRigidBodyEnabledAttr().Get()
+    shapes = [
+        prim for prim in Usd.PrimRange(fixture) if prim.HasAPI(UsdPhysics.CollisionAPI)
+    ]
+    assert (
+        len(shapes)
+        == sum(prim.HasAPI(UsdPhysics.CollisionAPI) for prim in source.Traverse())
+        == 29
+    )
+    assert all(
+        UsdPhysics.CollisionAPI(prim).GetCollisionEnabledAttr().Get() for prim in shapes
+    )
+    return {
+        "status": "PASS",
+        "bottom_height_m": world.GetMin()[2],
+        "wall_gap_m": gap,
+        "glazing_clearance_m": bounds.GetMin()[0] - glass.GetMax()[0],
+        "static_colliders": len(shapes),
+        "native_scale": "retained",
     }
