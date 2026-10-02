@@ -1,111 +1,73 @@
-"""Compose static Table2 furniture in its measured tabletop frame."""
+"""Place Table2 assets and describe its adjoining painted L wall."""
 
 import pathlib
 
-# OpenUSD comes from the independent USD/Isaac environment.
+# OpenUSD is supplied by the independent USD/Isaac environment.
 # pylint: disable=import-error
-from pxr import Gf, Sdf, Usd, UsdGeom, UsdPhysics, UsdShade
+from pxr import Gf, Usd, UsdPhysics
 
 # pylint: enable=import-error
 
+import scene_geometry
+import wall_materials
+from wall_components import WallAssembly, WallPanel
+
 import compose_scene
 import cut_wood_board
-
-BOARD_WIDTHS = (2.0, 1.4)
-BOARD_RUN_LENGTH = sum(BOARD_WIDTHS)
-BOARD_HEIGHT, BOARD_THICKNESS = 2.5, 0.018
-WALL_HEIGHT, WALL_THICKNESS, SHORT_WALL_LENGTH = 3.0, 0.14605, 0.642
-GROUP = "/World/Furniture"
-BUILTIN_MDL = "OmniPBR.mdl"
+from wall_layout import FURNITURE, FURNITURE_PATH, PAINT_PATH
 
 
-def frame(corners: dict) -> tuple:
-    """Return B and unit vectors A-to-B / B-to-C in the world XY plane."""
-    a, b, c = (Gf.Vec3d(*corners[key]) for key in ("A", "B", "C"))
-    b[2] = a[2] = c[2] = 0
-    return b, (b - a).GetNormalized(), (c - b).GetNormalized()
-
-
-def surface_material(stage, path: str, color: tuple, roughness: float, metallic: float):
-    """Author a shared PBR material with a portable USD fallback."""
-    material = UsdShade.Material.Define(stage, path)
-    mdl = UsdShade.Shader.Define(stage, path + "/OmniPBR")
-    mdl.CreateImplementationSourceAttr(UsdShade.Tokens.sourceAsset)
-    mdl.SetSourceAsset(BUILTIN_MDL, "mdl")
-    mdl.SetSourceAssetSubIdentifier("OmniPBR", "mdl")
-    mdl.CreateInput("diffuse_color_constant", Sdf.ValueTypeNames.Color3f).Set(
-        Gf.Vec3f(*color)
-    )
-    mdl.CreateInput("reflection_roughness_constant", Sdf.ValueTypeNames.Float).Set(
-        roughness
-    )
-    mdl.CreateInput("metallic_constant", Sdf.ValueTypeNames.Float).Set(metallic)
-    material.CreateSurfaceOutput("mdl").ConnectToSource(mdl.ConnectableAPI(), "out")
-    preview = UsdShade.Shader.Define(stage, path + "/Preview")
-    preview.CreateIdAttr("UsdPreviewSurface")
-    preview.CreateInput("diffuseColor", Sdf.ValueTypeNames.Color3f).Set(
-        Gf.Vec3f(*color)
-    )
-    preview.CreateInput("roughness", Sdf.ValueTypeNames.Float).Set(roughness)
-    if metallic:
-        preview.CreateInput("metallic", Sdf.ValueTypeNames.Float).Set(metallic)
-    material.CreateSurfaceOutput().ConnectToSource(preview.ConnectableAPI(), "surface")
-    return material
-
-
-def wall_material(stage):
-    """Keep the existing white matte paint parameters and binding path."""
-    return surface_material(stage, GROUP + "/Paint", (0.85, 0.85, 0.85), 0.9, 0)
-
-
-def static_box(stage, path: str, center: tuple, dimensions: tuple, material):
-    """Create a bound, static collision box with an editable yaw."""
-    shape = UsdGeom.Cube.Define(stage, path)
-    shape.CreateSizeAttr(1)
-    shape.AddTranslateOp().Set(Gf.Vec3d(*center))
-    shape.AddRotateZOp().Set(0)
-    shape.AddScaleOp().Set(Gf.Vec3f(*dimensions))
-    UsdPhysics.CollisionAPI.Apply(shape.GetPrim()).CreateCollisionEnabledAttr(True)
-    UsdShade.MaterialBindingAPI.Apply(shape.GetPrim()).Bind(material)
-    return shape.GetPrim()
-
-
-def walls(stage, anchor, u, v, yaw: float) -> None:
+def walls(stage: Usd.Stage, anchor, u, v, yaw: float) -> None:
     """Create the two static oriented boxes with shared matte paint."""
-    material = wall_material(stage)
+    wall_materials.paint_material(stage, PAINT_PATH)
     placements = (
         (
             "LongWall",
             anchor
-            - u * (BOARD_RUN_LENGTH / 2)
-            - v * (BOARD_THICKNESS + WALL_THICKNESS / 2),
-            (BOARD_RUN_LENGTH, WALL_THICKNESS, WALL_HEIGHT),
+            - u * (FURNITURE.board_run_length / 2)
+            - v * (FURNITURE.board_thickness + FURNITURE.wall_thickness / 2),
+            (
+                FURNITURE.board_run_length,
+                FURNITURE.wall_thickness,
+                FURNITURE.wall_height,
+            ),
         ),
         (
             "ShortWall",
-            anchor + u * (WALL_THICKNESS / 2) + v * (SHORT_WALL_LENGTH / 2),
-            (WALL_THICKNESS, SHORT_WALL_LENGTH, WALL_HEIGHT),
+            anchor
+            + u * (FURNITURE.wall_thickness / 2)
+            + v * (FURNITURE.short_wall_length / 2),
+            (
+                FURNITURE.wall_thickness,
+                FURNITURE.short_wall_length,
+                FURNITURE.wall_height,
+            ),
         ),
     )
+    panels = []
     for name, center, dimensions in placements:
-        center[2] = WALL_HEIGHT / 2
-        prim = static_box(
-            stage, GROUP + "/" + name, tuple(center), dimensions, material
-        )
-        prim.GetAttribute("xformOp:rotateZ").Set(yaw)
+        center[2] = FURNITURE.wall_height / 2
+        panels.append((name, WallPanel(tuple(center), dimensions, PAINT_PATH, yaw)))
+    WallAssembly(panels=tuple(panels)).build(stage, FURNITURE_PATH)
 
 
-def place_boards(stage, source: pathlib.Path, table2: dict) -> dict:
+def place_boards(stage: Usd.Stage, source: pathlib.Path, table2: dict) -> dict:
     """Keep the BC endpoint and seam fixed while cutting only the far board."""
-    b, u, v = frame(table2["corners_m"])
-    boards = (source, cut_wood_board.build(source, BOARD_WIDTHS[1]))
+    b, u, v = scene_geometry.table_frame(table2["corners_m"])
+    boards = (source, cut_wood_board.build(source, FURNITURE.board_widths[1]))
     positions, distance = {}, 0.0
-    for index, (asset, width) in enumerate(zip(boards, BOARD_WIDTHS, strict=True)):
+    for index, (asset, width) in enumerate(
+        zip(boards, FURNITURE.board_widths, strict=True)
+    ):
         name = "Board" + str(index + 1)
-        center = b - u * (distance + width / 2) - v * (BOARD_THICKNESS / 2)
-        center[2] = BOARD_HEIGHT / 2
+        center = b - u * (distance + width / 2) - v * (FURNITURE.board_thickness / 2)
+        center[2] = FURNITURE.board_height / 2
         prim = compose_scene.place(
-            stage, GROUP + "/" + name, asset, tuple(center), table2["yaw_deg"] + 180
+            stage,
+            FURNITURE_PATH + "/" + name,
+            asset,
+            tuple(center),
+            table2["yaw_deg"] + 180,
         )
         UsdPhysics.RigidBodyAPI(prim).CreateRigidBodyEnabledAttr(False)
         positions[name] = list(center)
@@ -113,9 +75,9 @@ def place_boards(stage, source: pathlib.Path, table2: dict) -> dict:
     return positions
 
 
-def build(stage, root: pathlib.Path, table2: dict) -> dict:
+def build(stage: Usd.Stage, root: pathlib.Path, table2: dict) -> dict:
     """Place two boards, one chair and two walls without stepping physics."""
-    b, u, v = frame(table2["corners_m"])
+    b, u, v = scene_geometry.table_frame(table2["corners_m"])
     yaw = table2["yaw_deg"]
     directory = root / "assets/furniture"
     positions = place_boards(
@@ -125,83 +87,22 @@ def build(stage, root: pathlib.Path, table2: dict) -> dict:
     # The source chair faces -Y; this rotation maps its front to C-to-D.
     center = Gf.Vec3d(*table2["corners_m"]["C"]) - u * 0.1 + v * (0.545 / 2 + 0.05)
     center[2] = 0
-    compose_scene.place(stage, GROUP + "/Chair", chair, tuple(center), yaw - 90)
+    compose_scene.place(
+        stage, FURNITURE_PATH + "/Chair", chair, tuple(center), yaw - 90
+    )
     positions["Chair"] = list(center)
     walls(stage, b, u, v, yaw)
     return {
-        "prim_path": GROUP,
+        "prim_path": FURNITURE_PATH,
         "positions_m": positions,
         "board_yaw_deg": yaw + 180,
         "chair_yaw_deg": yaw - 90,
-        "wall_height_m": WALL_HEIGHT,
-        "wall_thickness_m": WALL_THICKNESS,
-        "board_widths_m": list(BOARD_WIDTHS),
-        "long_wall_length_m": BOARD_RUN_LENGTH,
-        "short_wall_length_m": SHORT_WALL_LENGTH,
+        "wall_height_m": FURNITURE.wall_height,
+        "wall_thickness_m": FURNITURE.wall_thickness,
+        "board_widths_m": list(FURNITURE.board_widths),
+        "long_wall_length_m": FURNITURE.board_run_length,
+        "short_wall_length_m": FURNITURE.short_wall_length,
         "material": "white OmniPBR; roughness 0.9; metallic 0",
-        "runtime_dependency": BUILTIN_MDL,
+        "runtime_dependency": wall_materials.PBR_MDL,
         "corner_joint": "Board1's 18 mm end bridges the wall faces at B",
     }
-
-
-# Keep related geometric measurements visible in one acceptance pass.
-# pylint: disable-next=too-many-locals
-def validate(stage, table2: dict) -> dict:
-    """Measure seams, direction, support, collisions and chair clearance."""
-    b, u, v = frame(table2["corners_m"])
-    cache = UsdGeom.BBoxCache(Usd.TimeCode.Default(), ["default", "render", "proxy"])
-    transforms = UsdGeom.XformCache()
-    bodies, measured = [], {}
-    for name in ("Board1", "Board2", "Chair"):
-        prim = stage.GetPrimAtPath(GROUP + "/" + name)
-        assert not UsdPhysics.RigidBodyAPI(prim).GetRigidBodyEnabledAttr().Get()
-        bounds = cache.ComputeRelativeBound(prim, prim).ComputeAlignedRange()
-        matrix = transforms.GetLocalToWorldTransform(prim)
-        center = matrix.ExtractTranslation()
-        assert abs(center[2] + bounds.GetMin()[2]) < 0.001
-        shapes = [p for p in Usd.PrimRange(prim) if p.HasAPI(UsdPhysics.CollisionAPI)]
-        assert shapes and all(
-            UsdPhysics.CollisionAPI(p).GetCollisionEnabledAttr().Get() for p in shapes
-        )
-        if name.startswith("Board"):
-            width = BOARD_WIDTHS[int(name[-1]) - 1]
-            assert abs(bounds.GetSize()[0] - width) < 1e-5
-            assert abs(bounds.GetSize()[2] - BOARD_HEIGHT) < 1e-5
-            assert Gf.Dot(matrix.TransformDir(Gf.Vec3d(0, -1, 0)), v) > 0.99999
-            bodies.append((center, bounds))
-        else:
-            front = matrix.TransformDir(Gf.Vec3d(0, -1, 0))
-            assert Gf.Dot(front, -u) > 0.99999
-            rear = center + matrix.TransformDir(Gf.Vec3d(0, bounds.GetMax()[1], 0))
-            assert Gf.Dot(rear - b, u) > WALL_THICKNESS
-            c = Gf.Vec3d(*table2["corners_m"]["C"])
-            clearance = Gf.Dot(center - c, v) + bounds.GetMin()[0]
-            assert clearance > 0.04
-            measured["chair_table_clearance_m"] = clearance
-            # Even the chair's innermost edge is beyond the wall's C-side end.
-            assert Gf.Dot(center - b, v) + bounds.GetMin()[0] > SHORT_WALL_LENGTH
-        measured[name] = {"center_m": list(center), "colliders": len(shapes)}
-    end = bodies[0][0] + u * BOARD_WIDTHS[0] / 2
-    assert abs(Gf.Dot(end - b, u)) < 1e-6
-    assert abs(Gf.Dot(end - b, v) + BOARD_THICKNESS / 2) < 1e-6
-    assert abs((bodies[0][0] - bodies[1][0]).GetLength() - BOARD_RUN_LENGTH / 2) < 1e-6
-    for name, dimensions in (
-        ("LongWall", (BOARD_RUN_LENGTH, WALL_THICKNESS, WALL_HEIGHT)),
-        ("ShortWall", (WALL_THICKNESS, SHORT_WALL_LENGTH, WALL_HEIGHT)),
-    ):
-        prim = stage.GetPrimAtPath(GROUP + "/" + name)
-        scale = prim.GetAttribute("xformOp:scale").Get()
-        assert all(abs(a - e) < 1e-6 for a, e in zip(scale, dimensions, strict=True))
-        assert UsdPhysics.CollisionAPI(prim).GetCollisionEnabledAttr().Get()
-        assert (
-            abs(cache.ComputeWorldBound(prim).ComputeAlignedRange().GetMin()[2]) < 1e-6
-        )
-        assert not prim.HasAPI(UsdPhysics.RigidBodyAPI)
-        material, _ = UsdShade.MaterialBindingAPI(prim).ComputeBoundMaterial()
-        assert str(material.GetPath()) == GROUP + "/Paint"
-    shader = UsdShade.Shader(stage.GetPrimAtPath(GROUP + "/Paint/OmniPBR"))
-    assert shader.GetSourceAsset("mdl").path == BUILTIN_MDL
-    assert shader.GetSourceAssetSubIdentifier("mdl") == "OmniPBR"
-    assert abs(shader.GetInput("reflection_roughness_constant").Get() - 0.9) < 1e-6
-    measured["status"] = "PASS"
-    return measured

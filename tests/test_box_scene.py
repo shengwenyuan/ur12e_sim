@@ -15,8 +15,7 @@ sys.path.insert(0, str(ROOT / "scripts"))
 # pylint: disable=wrong-import-position
 import compose_box_scene
 import kinematics
-import workcell_furniture
-import room_extension
+import wall_materials
 
 
 class BoxSceneTest(unittest.TestCase):
@@ -101,7 +100,7 @@ class BoxSceneTest(unittest.TestCase):
             str(self.directory / "scene.usda")
         )
         self.assertFalse(
-            set(unresolved) - {workcell_furniture.BUILTIN_MDL, room_extension.GLASS_MDL}
+            set(unresolved) - {wall_materials.PBR_MDL, wall_materials.GLASS_MDL}
         )
         dependencies = [layer.realPath for layer in layers] + assets
         self.assertFalse(

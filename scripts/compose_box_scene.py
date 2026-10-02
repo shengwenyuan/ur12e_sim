@@ -18,6 +18,8 @@ import workcell_furniture
 import room_extension
 import chair_side_glass
 import red_wall
+import wall_materials
+import wall_validation
 
 SCENE = "versteel_box_pick_place"
 LENGTH, WIDTH, HEIGHT = 1.8288, 0.762, 0.85
@@ -254,7 +256,7 @@ def validate(path: pathlib.Path) -> dict:
     stage = Usd.Stage.Open(str(path))
     layers, _, unresolved = UsdUtils.ComputeAllDependencies(str(path))
     assert not (
-        set(unresolved) - {workcell_furniture.BUILTIN_MDL, room_extension.GLASS_MDL}
+        set(unresolved) - {wall_materials.PBR_MDL, wall_materials.GLASS_MDL}
     ), unresolved
     assert not any(
         pathlib.Path(ref).is_absolute()
@@ -293,10 +295,10 @@ def validate(path: pathlib.Path) -> dict:
         "back_gap_m": RIGHT_EDGE - back[0],
         "base_box_distance_m": BASE_GAP,
         "table2": table2,
-        "furniture": workcell_furniture.validate(stage, layout["table2"]),
-        "room_extension": room_extension.validate(stage, layout["table2"]),
-        "chair_side_glass": chair_side_glass.validate(stage, layout["table2"]),
-        "red_wall": red_wall.validate(stage),
+        "furniture": wall_validation.validate_furniture(stage, layout["table2"]),
+        "room_extension": wall_validation.validate_room(stage, layout["table2"]),
+        "chair_side_glass": wall_validation.validate_partition(stage, layout["table2"]),
+        "red_wall": wall_validation.validate_red_wall(stage),
         "red_cube_mass_kg": DENSITY * EDGE**3,
         "render_validation": "NOT RUN",
         "settle_validation": "NOT RUN",
