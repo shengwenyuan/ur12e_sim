@@ -42,10 +42,7 @@ def check_home(collection_root: pathlib.Path, home: list) -> None:
         compile(ast.Expression(assignment.value), str(profile), "eval"),
         {"__builtins__": {}, "math": math},
     )
-    if any(
-        abs(a - math.radians(b)) > 1e-12
-        for a, b in zip(value, home, strict=True)
-    ):
+    if any(abs(a - math.radians(b)) > 1e-12 for a, b in zip(value, home, strict=True)):
         raise ValueError("Layout HOME differs from collection HOME")
 
 
@@ -56,6 +53,23 @@ def reference(stage, path: str, asset: pathlib.Path, output: pathlib.Path):
     return prim
 
 
+def place(
+    stage,
+    name: str,
+    asset: pathlib.Path,
+    position: tuple,
+    yaw: float = 0,
+):
+    """Place one referenced component without scaling its original geometry."""
+    prim = reference(stage, name, asset, pathlib.Path(stage.GetRootLayer().realPath))
+    matrix = Gf.Matrix4d().SetRotate(Gf.Rotation(Gf.Vec3d(0, 0, 1), yaw))
+    matrix.SetTranslateOnly(Gf.Vec3d(*position))
+    UsdGeom.Xformable(prim).MakeMatrixXform().Set(matrix)
+    return prim
+
+
+# This cache intentionally exposes only one pose-writing operation.
+# pylint: disable-next=too-few-public-methods
 class PoseWriter:
     """Cache imported link prims; retain mesh offsets and reset-stack rules."""
 
@@ -64,9 +78,7 @@ class PoseWriter:
         self.links = [
             link
             for link in Usd.PrimRange(prim)
-            if link != prim
-            and link.GetName() in names
-            and link.IsA(UsdGeom.Xform)
+            if link != prim and link.GetName() in names and link.IsA(UsdGeom.Xform)
         ]
 
     def apply(self, poses: dict, mounting) -> None:
@@ -128,10 +140,7 @@ def place_robot(stage, root: pathlib.Path, layout: dict, output: pathlib.Path):
     )
     tool_poses = kinematics.forward(
         tool_dir / "hande.urdf",
-        {
-            f"robotiq_hande_{side}_finger_joint": 0.025
-            for side in ("left", "right")
-        },
+        {f"robotiq_hande_{side}_finger_joint": 0.025 for side in ("left", "right")},
     )
     # Installation orientation is independent of the TCP's natural offset.
     yaw = layout["robot"].get("base_yaw_rad")
@@ -140,22 +149,18 @@ def place_robot(stage, root: pathlib.Path, layout: dict, output: pathlib.Path):
     mounting = kinematics.rotation((0, 0, 1), yaw) * Gf.Matrix4d().SetTranslate(
         Gf.Vec3d(*layout["robot"]["base_position_m"])
     )
-    arm = reference(
-        stage, "/World/UR12e", arm_dir / "usd/ur12e/ur12e.usda", output
-    )
-    tool = reference(
-        stage, "/World/HandE", tool_dir / "usd/hande/hande.usda", output
-    )
+    arm = reference(stage, "/World/UR12e", arm_dir / "usd/ur12e/ur12e.usda", output)
+    tool = reference(stage, "/World/HandE", tool_dir / "usd/hande/hande.usda", output)
     apply_pose(arm, arm_poses, mounting)
     tool_mount = arm_poses["tool0"] * mounting
     apply_pose(tool, tool_poses, tool_mount)
     for prim in (arm, tool):
-        prim.CreateAttribute(
-            "preview:stateSource", Sdf.ValueTypeNames.String
-        ).Set("configured_home_static")
-    tool.CreateAttribute(
-        "preview:jawOpeningMeters", Sdf.ValueTypeNames.Double
-    ).Set(0.05)
+        prim.CreateAttribute("preview:stateSource", Sdf.ValueTypeNames.String).Set(
+            "configured_home_static"
+        )
+    tool.CreateAttribute("preview:jawOpeningMeters", Sdf.ValueTypeNames.Double).Set(
+        0.05
+    )
     return yaw, tool_poses["robotiq_hande_end"] * tool_mount
 
 
@@ -187,9 +192,7 @@ def compose(root: pathlib.Path, collection_root: pathlib.Path) -> dict:
     UsdGeom.Xformable(camera).MakeMatrixXform().Set(view.GetInverse())
     # A static reference point records the nominal fingertip TCP independently
     # of the user's approximate XY layout marker and any real tool calibration.
-    UsdGeom.Xform.Define(stage, "/World/NominalTCP").AddTransformOp().Set(
-        tcp_matrix
-    )
+    UsdGeom.Xform.Define(stage, "/World/NominalTCP").AddTransformOp().Set(tcp_matrix)
     stage.GetRootLayer().customLayerData = {
         "purpose": "Nominal UR12e/Hand-E HOME with collision geometry",
         "robot_meshes_loaded": True,

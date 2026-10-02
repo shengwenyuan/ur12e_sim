@@ -13,6 +13,7 @@ from pxr import Gf, Usd, UsdGeom, UsdLux, UsdPhysics, UsdShade, UsdUtils
 # pylint: enable=import-error
 
 import compose_scene
+import workcell_furniture
 
 SCENE = "versteel_box_pick_place"
 LENGTH, WIDTH, HEIGHT = 1.8288, 0.762, 0.85
@@ -87,26 +88,9 @@ def cube_asset(root: pathlib.Path) -> pathlib.Path:
     return path
 
 
-def place(
-    stage,
-    name: str,
-    asset: pathlib.Path,
-    position: tuple,
-    yaw: float = 0,
-):
-    """Place one referenced component without scaling its original geometry."""
-    prim = compose_scene.reference(
-        stage, name, asset, pathlib.Path(stage.GetRootLayer().realPath)
-    )
-    matrix = Gf.Matrix4d().SetRotate(Gf.Rotation(Gf.Vec3d(0, 0, 1), yaw))
-    matrix.SetTranslateOnly(Gf.Vec3d(*position))
-    UsdGeom.Xformable(prim).MakeMatrixXform().Set(matrix)
-    return prim
-
-
 def place_table(stage, name: str, asset: pathlib.Path, xy: tuple, yaw: float):
     """Reuse the static table asset with the workcell's common top height."""
-    table = place(stage, name, asset, (*xy, 0), yaw)
+    table = compose_scene.place(stage, name, asset, (*xy, 0), yaw)
     transform = UsdGeom.Xformable(table)
     transform.MakeMatrixXform().Set(
         Gf.Matrix4d().SetScale(Gf.Vec3d(1, 1, HEIGHT / NATIVE_HEIGHT))
@@ -187,7 +171,7 @@ def build(root: pathlib.Path, collection_root: pathlib.Path) -> dict:
         "source": "nominal HOME FK",
     }
     box = root / "assets/props/open_dynamixel_box/isaac/open_cube_carton.usdc"
-    place(
+    compose_scene.place(
         stage,
         "/World/Props/OpenDynamixelBox",
         box,
@@ -200,7 +184,7 @@ def build(root: pathlib.Path, collection_root: pathlib.Path) -> dict:
         height + EDGE / 2 + 0.001,
     )
     cube_yaw = 173.62582178591697  # Retained from the original seed-3072 pose.
-    place(stage, "/World/Props/RedCube", cube, position, cube_yaw)
+    compose_scene.place(stage, "/World/Props/RedCube", cube, position, cube_yaw)
     layout["props"] = {
         "box_body_center_m": [box_x, 0, height + 0.001],
         "box_yaw_deg": -90,
@@ -213,6 +197,7 @@ def build(root: pathlib.Path, collection_root: pathlib.Path) -> dict:
         "position_policy": "user-refined XY; original seeded yaw retained",
         "support_clearance_m": 0.001,
     }
+    layout["furniture"] = workcell_furniture.build(stage, root, layout["table2"])
     environment(stage)
     layout["background"] = {"mode": "none", "lighting": "neutral"}
     stage.GetRootLayer().Save()
@@ -258,7 +243,7 @@ def validate(path: pathlib.Path) -> dict:
     """Check physical layout, stable initialization and portable references."""
     stage = Usd.Stage.Open(str(path))
     layers, _, unresolved = UsdUtils.ComputeAllDependencies(str(path))
-    assert not unresolved, unresolved
+    assert not (set(unresolved) - {workcell_furniture.BUILTIN_MDL}), unresolved
     assert not any(
         pathlib.Path(ref).is_absolute()
         for layer in layers
@@ -296,6 +281,7 @@ def validate(path: pathlib.Path) -> dict:
         "back_gap_m": RIGHT_EDGE - back[0],
         "base_box_distance_m": BASE_GAP,
         "table2": table2,
+        "furniture": workcell_furniture.validate(stage, layout["table2"]),
         "red_cube_mass_kg": DENSITY * EDGE**3,
         "render_validation": "NOT RUN",
         "settle_validation": "NOT RUN",

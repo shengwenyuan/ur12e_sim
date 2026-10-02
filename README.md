@@ -158,3 +158,8 @@ See docs/versteel-box-scene.md for the current review and station evidence.
 This standalone project uses Git LFS for **all assets/ and scenes/ files**.
 Install Git LFS and run `git lfs pull` after cloning from a future Git/LFS host.
 The remote URL is user-configured; this cleanup does not push any commits.
+
+The Versteel scene also includes the accepted second table and a Table2 furniture
+preview: two upright wood boards, a fixed red caster chair and matte white walls.
+See [the furniture plan](docs/table2-furniture.md) for geometry and render results.
+Wall OmniPBR comes from the Isaac runtime; generic USD uses a preview fallback.

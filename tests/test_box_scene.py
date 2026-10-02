@@ -15,6 +15,7 @@ sys.path.insert(0, str(ROOT / "scripts"))
 # pylint: disable=wrong-import-position
 import compose_box_scene
 import kinematics
+import workcell_furniture
 
 
 class BoxSceneTest(unittest.TestCase):
@@ -71,7 +72,7 @@ class BoxSceneTest(unittest.TestCase):
         self.assertGreaterEqual(checked, 7)
 
     def test_clean_environment_and_portable_dependencies(self):
-        """No room/photo dependencies can enter the active workcell."""
+        """No photographic backgrounds can enter the active workcell."""
         self.assertFalse(self.stage.GetPrimAtPath("/World/LabBackground"))
         self.assertFalse(self.stage.GetPrimAtPath("/World/CaptureCamera"))
         dome = UsdLux.DomeLight(self.stage.GetPrimAtPath("/World/Environment"))
@@ -81,6 +82,7 @@ class BoxSceneTest(unittest.TestCase):
         expected = {
             "Table",
             "Table2",
+            "Furniture",
             "UR12e",
             "HandE",
             "Props",
@@ -97,7 +99,7 @@ class BoxSceneTest(unittest.TestCase):
         layers, assets, unresolved = UsdUtils.ComputeAllDependencies(
             str(self.directory / "scene.usda")
         )
-        self.assertFalse(unresolved)
+        self.assertFalse(set(unresolved) - {workcell_furniture.BUILTIN_MDL})
         dependencies = [layer.realPath for layer in layers] + assets
         self.assertFalse(
             any("background" in str(path).lower() for path in dependencies)
