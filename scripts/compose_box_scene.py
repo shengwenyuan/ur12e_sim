@@ -211,6 +211,7 @@ def build(root: pathlib.Path, collection_root: pathlib.Path) -> dict:
     layout["red_wall"] = red_wall.build(stage)
     layout["fire_extinguisher"] = wall_fixtures.build(stage, root)
     environment(stage)
+    layout["floor"] = floor_material.build(stage, layout)
     layout["background"] = {"mode": "none", "lighting": "neutral"}
     calibration = root / calibrated_cameras.CONFIG
     if calibration.is_file():
@@ -231,7 +232,6 @@ def environment(stage) -> None:
     floor.AddTranslateOp().Set(Gf.Vec3d(0, 0, -0.01))
     floor.AddScaleOp().Set(Gf.Vec3f(16, 16, 0.02))
     UsdPhysics.CollisionAPI.Apply(floor.GetPrim())
-    floor_material.build(stage)
     dome = UsdLux.DomeLight.Define(stage, "/World/Environment")
     dome.CreateIntensityAttr(800)
     dome.CreateColorAttr(Gf.Vec3f(0.5))

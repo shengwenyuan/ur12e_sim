@@ -2,7 +2,7 @@
 
 **Code style requirement: Economical code, exceptional readability, and excellent abstraction design.**
 
-Status: accepted on 2026-10-03; the user approved the darker floor and requested a scene commit.
+Status: accepted on 2026-10-03. The user approved the interior-only floor and requested its commit; the darker material was committed in 9f43641.
 The photograph is visual reference only; it is not imported as a texture.
 
 ## Scope
@@ -105,3 +105,50 @@ Evidence: `artifacts/terrazzo-floor-darker-20261003/final-review/scene-review/`
 contains `01_overview.png`, `02_d435_left.png`, `03_d435_right.png` and the
 native runtime report. This commit also includes the previously implemented
 wall-mounted extinguisher and its documented static acceptance results.
+
+## Interior-only floor extent (2026-10-03)
+
+Status: aligned with the user's instruction to keep terrazzo inside the glass
+walls and use a simple implementation. Keep the approved shader unchanged.
+Add one horizontal, double-sided USD polygon at Z=0.0002 m, bound to the
+existing floor material. Derive its perimeter from the painted back corner,
+short wall, all glass-run endpoints and the far end of the perpendicular
+room wall. Close the existing unbuilt room opening by a straight segment
+between those two wall endpoints; this adds no closing wall. The perimeter
+runs beneath the wall centerlines, so it does not require offsets, boolean
+cuts, triangulation code or shader masks. Record its world XY points in layout.
+
+Keep the original 16 m square support/collider at Z=0, remove its terrazzo
+binding and leave its plain default gray appearance. The new interior finish
+has no collision API and no displacement. Preserve all other geometry,
+lights, camera optics/poses, material values and existing layout/report fields.
+
+Acceptance: verify retained fields and the collider, a single valid planar
+polygon, portable material binding, interior coverage of both table feet and
+exclusion of the exterior red wall; run relevant existing tests, Black/Pylint,
+and render an overview plus the two saved D435 views without timeline play.
+No commit or push is requested for this adjustment.
+
+- PASS: one 12-point planar polygon uses the unchanged approved floor material.
+  Both tables' XY bounds and the robot/task area lie inside; the exterior red
+  wall lies outside. The floor finish has no collision API. Its 0.2 mm visual
+  offset avoids coincident surfaces without changing the support plane.
+- PASS: all prior authored fields remain exact except removal of the original
+  floor material binding and MaterialBindingAPI. Only /World/RoomFloor is added.
+  Existing layout keys and the scene report are unchanged; layout gains one
+  floor entry with its boundary points and closure convention.
+- PASS: 19 existing relevant tests passed locally; the three box tests passed
+  again with added binding/planarity/no-collision checks. Black formatted the
+  three touched Python files; Pylint scored 10.00/10. The first comparison
+  assertion omitted one metadata field on the removed binding; accounting
+  for that deleted relationship resolved it. The geometry check then passed.
+- PASS: Isaac Sim 6.0.1.0 overview and both native 640 x 480 D435 views show the
+  patterned floor within the room and plain gray outside. The concave single
+  face renders correctly without custom triangulation. Source SHA-256:
+  `4f6843f1e05025af169084648b75177634149374dc36af98a8f10143fe09d5da`.
+  Timeline=0, physics_steps=0, hardware_control=false, scene_saved=false.
+- Evidence: `artifacts/interior-floor-20261003/` contains the prior snapshot,
+  retained-field and coverage checks, static-check summary and render captures.
+  User visual acceptance of the extent remains pending; no commit or push made.
+
+User acceptance: the user requested the interior-floor commit on 2026-10-03 after reviewing the render. The extent is accepted.

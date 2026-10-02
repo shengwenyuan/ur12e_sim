@@ -8,7 +8,7 @@ import unittest
 
 # OpenUSD is supplied by the independent USD/Isaac environment.
 # pylint: disable=import-error
-from pxr import Gf, Usd, UsdGeom, UsdLux, UsdPhysics, UsdUtils
+from pxr import Gf, Usd, UsdGeom, UsdLux, UsdPhysics, UsdShade, UsdUtils
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
@@ -79,6 +79,19 @@ class BoxSceneTest(unittest.TestCase):
         self.assertFalse(dome.GetTextureFileAttr().Get())
         floor = UsdGeom.Imageable(self.stage.GetPrimAtPath("/World/Floor"))
         self.assertEqual(floor.ComputeVisibility(), "inherited")
+        self.assertFalse(
+            UsdShade.MaterialBindingAPI(floor.GetPrim()).ComputeBoundMaterial()[0]
+        )
+        finish = UsdGeom.Mesh(self.stage.GetPrimAtPath("/World/RoomFloor"))
+        self.assertFalse(finish.GetPrim().HasAPI(UsdPhysics.CollisionAPI))
+        self.assertTrue(
+            UsdShade.MaterialBindingAPI(finish.GetPrim()).ComputeBoundMaterial()[0]
+        )
+        self.assertTrue(
+            all(
+                abs(point[2] - 0.0002) < 1e-10 for point in finish.GetPointsAttr().Get()
+            )
+        )
         expected = {
             "Table",
             "Table2",
@@ -88,6 +101,7 @@ class BoxSceneTest(unittest.TestCase):
             "Props",
             "Floor",
             "FloorMaterial",
+            "RoomFloor",
             "Environment",
             "Key",
             "PhysicsScene",
