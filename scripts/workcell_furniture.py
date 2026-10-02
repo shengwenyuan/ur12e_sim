@@ -26,26 +26,36 @@ def frame(corners: dict) -> tuple:
     return b, (b - a).GetNormalized(), (c - b).GetNormalized()
 
 
-def wall_material(stage):
-    """Bind white matte paint using Isaac's built-in MDL and USD fallback."""
-    path = GROUP + "/Paint"
+def surface_material(stage, path: str, color: tuple, roughness: float, metallic: float):
+    """Author a shared PBR material with a portable USD fallback."""
     material = UsdShade.Material.Define(stage, path)
     mdl = UsdShade.Shader.Define(stage, path + "/OmniPBR")
     mdl.CreateImplementationSourceAttr(UsdShade.Tokens.sourceAsset)
     mdl.SetSourceAsset(BUILTIN_MDL, "mdl")
     mdl.SetSourceAssetSubIdentifier("OmniPBR", "mdl")
     mdl.CreateInput("diffuse_color_constant", Sdf.ValueTypeNames.Color3f).Set(
-        Gf.Vec3f(0.85)
+        Gf.Vec3f(*color)
     )
-    mdl.CreateInput("reflection_roughness_constant", Sdf.ValueTypeNames.Float).Set(0.9)
-    mdl.CreateInput("metallic_constant", Sdf.ValueTypeNames.Float).Set(0)
+    mdl.CreateInput("reflection_roughness_constant", Sdf.ValueTypeNames.Float).Set(
+        roughness
+    )
+    mdl.CreateInput("metallic_constant", Sdf.ValueTypeNames.Float).Set(metallic)
     material.CreateSurfaceOutput("mdl").ConnectToSource(mdl.ConnectableAPI(), "out")
     preview = UsdShade.Shader.Define(stage, path + "/Preview")
     preview.CreateIdAttr("UsdPreviewSurface")
-    preview.CreateInput("diffuseColor", Sdf.ValueTypeNames.Color3f).Set(Gf.Vec3f(0.85))
-    preview.CreateInput("roughness", Sdf.ValueTypeNames.Float).Set(0.9)
+    preview.CreateInput("diffuseColor", Sdf.ValueTypeNames.Color3f).Set(
+        Gf.Vec3f(*color)
+    )
+    preview.CreateInput("roughness", Sdf.ValueTypeNames.Float).Set(roughness)
+    if metallic:
+        preview.CreateInput("metallic", Sdf.ValueTypeNames.Float).Set(metallic)
     material.CreateSurfaceOutput().ConnectToSource(preview.ConnectableAPI(), "surface")
     return material
+
+
+def wall_material(stage):
+    """Keep the existing white matte paint parameters and binding path."""
+    return surface_material(stage, GROUP + "/Paint", (0.85, 0.85, 0.85), 0.9, 0)
 
 
 def static_box(stage, path: str, center: tuple, dimensions: tuple, material):

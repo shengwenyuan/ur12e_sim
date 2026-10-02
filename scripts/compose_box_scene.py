@@ -16,6 +16,8 @@ import compose_scene
 import calibrated_cameras
 import workcell_furniture
 import room_extension
+import chair_side_glass
+import red_wall
 
 SCENE = "versteel_box_pick_place"
 LENGTH, WIDTH, HEIGHT = 1.8288, 0.762, 0.85
@@ -201,6 +203,8 @@ def build(root: pathlib.Path, collection_root: pathlib.Path) -> dict:
     }
     layout["furniture"] = workcell_furniture.build(stage, root, layout["table2"])
     layout["room_extension"] = room_extension.build(stage, layout["table2"])
+    layout["chair_side_glass"] = chair_side_glass.build(stage, layout["table2"])
+    layout["red_wall"] = red_wall.build(stage)
     environment(stage)
     layout["background"] = {"mode": "none", "lighting": "neutral"}
     calibration = root / calibrated_cameras.CONFIG
@@ -220,7 +224,7 @@ def environment(stage) -> None:
     floor = UsdGeom.Cube.Define(stage, "/World/Floor")
     floor.CreateSizeAttr(1)
     floor.AddTranslateOp().Set(Gf.Vec3d(0, 0, -0.01))
-    floor.AddScaleOp().Set(Gf.Vec3f(12, 12, 0.02))
+    floor.AddScaleOp().Set(Gf.Vec3f(16, 16, 0.02))
     UsdPhysics.CollisionAPI.Apply(floor.GetPrim())
     dome = UsdLux.DomeLight.Define(stage, "/World/Environment")
     dome.CreateIntensityAttr(800)
@@ -291,6 +295,8 @@ def validate(path: pathlib.Path) -> dict:
         "table2": table2,
         "furniture": workcell_furniture.validate(stage, layout["table2"]),
         "room_extension": room_extension.validate(stage, layout["table2"]),
+        "chair_side_glass": chair_side_glass.validate(stage, layout["table2"]),
+        "red_wall": red_wall.validate(stage),
         "red_cube_mass_kg": DENSITY * EDGE**3,
         "render_validation": "NOT RUN",
         "settle_validation": "NOT RUN",
