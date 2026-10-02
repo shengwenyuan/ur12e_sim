@@ -16,6 +16,7 @@ sys.path.insert(0, str(ROOT / "scripts"))
 import compose_box_scene
 import kinematics
 import workcell_furniture
+import room_extension
 
 
 class BoxSceneTest(unittest.TestCase):
@@ -99,7 +100,9 @@ class BoxSceneTest(unittest.TestCase):
         layers, assets, unresolved = UsdUtils.ComputeAllDependencies(
             str(self.directory / "scene.usda")
         )
-        self.assertFalse(set(unresolved) - {workcell_furniture.BUILTIN_MDL})
+        self.assertFalse(
+            set(unresolved) - {workcell_furniture.BUILTIN_MDL, room_extension.GLASS_MDL}
+        )
         dependencies = [layer.realPath for layer in layers] + assets
         self.assertFalse(
             any("background" in str(path).lower() for path in dependencies)

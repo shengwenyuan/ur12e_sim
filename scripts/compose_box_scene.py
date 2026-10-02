@@ -14,6 +14,7 @@ from pxr import Gf, Usd, UsdGeom, UsdLux, UsdPhysics, UsdShade, UsdUtils
 
 import compose_scene
 import workcell_furniture
+import room_extension
 
 SCENE = "versteel_box_pick_place"
 LENGTH, WIDTH, HEIGHT = 1.8288, 0.762, 0.85
@@ -198,6 +199,7 @@ def build(root: pathlib.Path, collection_root: pathlib.Path) -> dict:
         "support_clearance_m": 0.001,
     }
     layout["furniture"] = workcell_furniture.build(stage, root, layout["table2"])
+    layout["room_extension"] = room_extension.build(stage, layout["table2"])
     environment(stage)
     layout["background"] = {"mode": "none", "lighting": "neutral"}
     stage.GetRootLayer().Save()
@@ -243,7 +245,9 @@ def validate(path: pathlib.Path) -> dict:
     """Check physical layout, stable initialization and portable references."""
     stage = Usd.Stage.Open(str(path))
     layers, _, unresolved = UsdUtils.ComputeAllDependencies(str(path))
-    assert not (set(unresolved) - {workcell_furniture.BUILTIN_MDL}), unresolved
+    assert not (
+        set(unresolved) - {workcell_furniture.BUILTIN_MDL, room_extension.GLASS_MDL}
+    ), unresolved
     assert not any(
         pathlib.Path(ref).is_absolute()
         for layer in layers
@@ -282,6 +286,7 @@ def validate(path: pathlib.Path) -> dict:
         "base_box_distance_m": BASE_GAP,
         "table2": table2,
         "furniture": workcell_furniture.validate(stage, layout["table2"]),
+        "room_extension": room_extension.validate(stage, layout["table2"]),
         "red_cube_mass_kg": DENSITY * EDGE**3,
         "render_validation": "NOT RUN",
         "settle_validation": "NOT RUN",

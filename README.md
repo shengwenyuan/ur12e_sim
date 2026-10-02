@@ -163,3 +163,8 @@ The Versteel scene also includes the accepted second table and a Table2 furnitur
 preview: two upright wood boards, a fixed red caster chair and matte white walls.
 See [the furniture plan](docs/table2-furniture.md) for geometry and render results.
 Wall OmniPBR comes from the Isaac runtime; generic USD uses a preview fallback.
+
+The room extension preview adds a far-end wall and a perpendicular 4.0465 m wall
+with two contiguous thin-walled glass panes. See the
+[room extension plan](docs/table2-room-extension.md) for dimensions and results.
+OmniGlass.mdl is supplied by the Isaac runtime, with a generic USD preview.

@@ -45,6 +45,18 @@ def wall_material(stage):
     return material
 
 
+def static_box(stage, path: str, center: tuple, dimensions: tuple, material):
+    """Create a bound, static collision box with an editable yaw."""
+    shape = UsdGeom.Cube.Define(stage, path)
+    shape.CreateSizeAttr(1)
+    shape.AddTranslateOp().Set(Gf.Vec3d(*center))
+    shape.AddRotateZOp().Set(0)
+    shape.AddScaleOp().Set(Gf.Vec3f(*dimensions))
+    UsdPhysics.CollisionAPI.Apply(shape.GetPrim()).CreateCollisionEnabledAttr(True)
+    UsdShade.MaterialBindingAPI.Apply(shape.GetPrim()).Bind(material)
+    return shape.GetPrim()
+
+
 def walls(stage, anchor, u, v, yaw: float) -> None:
     """Create the two static oriented boxes with shared matte paint."""
     material = wall_material(stage)
@@ -62,13 +74,10 @@ def walls(stage, anchor, u, v, yaw: float) -> None:
     )
     for name, center, dimensions in placements:
         center[2] = WALL_HEIGHT / 2
-        shape = UsdGeom.Cube.Define(stage, GROUP + "/" + name)
-        shape.CreateSizeAttr(1)
-        shape.AddTranslateOp().Set(center)
-        shape.AddRotateZOp().Set(yaw)
-        shape.AddScaleOp().Set(Gf.Vec3f(*dimensions))
-        UsdPhysics.CollisionAPI.Apply(shape.GetPrim()).CreateCollisionEnabledAttr(True)
-        UsdShade.MaterialBindingAPI.Apply(shape.GetPrim()).Bind(material)
+        prim = static_box(
+            stage, GROUP + "/" + name, tuple(center), dimensions, material
+        )
+        prim.GetAttribute("xformOp:rotateZ").Set(yaw)
 
 
 def build(stage, root: pathlib.Path, table2: dict) -> dict:
